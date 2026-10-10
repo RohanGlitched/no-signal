@@ -27,7 +27,7 @@ def profile(backend) -> dict:
         nm = str(getattr(backend.options, "noise_model", "") or "")
     except Exception:
         pass
-    p = {"name": name, "noise_model": nm}
+    p = {"name": name, "noise_model": nm.splitlines()[0][:80] if nm else ""}
     if "ionq" in low or "ionq" in cls.lower():
         hardware = "qpu" in low
         key = next((k for k in ("forte-enterprise-1", "forte-1", "aria-2", "aria-1") if k in nm.lower() or k in low), "ideal")
@@ -108,7 +108,9 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None):
     qcs = [qc for qc, _ in pairs]
     if prof["family"] == "ibm":
         from qiskit import transpile
-        qcs = transpile(qcs, backend=backend, optimization_level=1, seed_transpiler=7)
+        # level 3 places each game on the best-calibrated qubits; level 1 keeps
+        # the trivial layout (qubits 0, 1, ...), which can be the noisiest pair
+        qcs = transpile(qcs, backend=backend, optimization_level=3, seed_transpiler=7)
     elif prof["family"] == "ionq":
         try:
             from qiskit import transpile
@@ -126,6 +128,7 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None):
     tallies = {"chsh": {}, "ghz": {}, "ms": {}}
     bob = {}      # no-signalling check: Bob's answer rate by (his card, Alice's card)
     rounds = {"chsh": [], "ghz": [], "ms": []}
+    pool = {"chsh": [], "ghz": [], "ms": []}
     rng = random.Random(seed)
     for i, (qc, gs) in enumerate(pairs):
         n = qc.num_qubits
@@ -144,15 +147,20 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None):
                     bb[0] += answers[1] * c
                     bb[1] += c
                 expanded.append((g, answers, win, c))
-        # a sample of rounds, for the replay race
         for g, answers, win, c in expanded:
-            if len(rounds[g.game]) < 400:
-                for _ in range(min(c, 3)):
-                    rounds[g.game].append({"cards": list(g.cards), "answers": answers, "win": win,
-                                           "classical": classical_win(g.game, tuple(g.cards))})
-    for k in rounds:
+            pool[g.game].append((g, answers, win, c))
+    # 120 rounds per game for the replay race, drawn uniformly from every round played
+    for k, items in pool.items():
+        total = sum(c for *_, c in items)
+        picks = sorted(rng.sample(range(total), min(120, total))) if total else []
+        at, j = 0, 0
+        for g, answers, win, c in items:
+            while j < len(picks) and picks[j] < at + c:
+                rounds[k].append({"cards": list(g.cards), "answers": answers, "win": win,
+                                  "classical": classical_win(g.game, tuple(g.cards))})
+                j += 1
+            at += c
         rng.shuffle(rounds[k])
-        rounds[k] = rounds[k][:120]
 
     games = {g: summarize(g, tallies[g]) for g in tallies if tallies[g]}
     nosig = {}

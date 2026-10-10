@@ -9,9 +9,44 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from nosig.play import summarize  # noqa: E402
+from nosig.play import summarize, classical_win  # noqa: E402
 
 ORDER = ["forte-enterprise-1", "forte-1", "aria-1", "aria-2", "ibm", "braket", "ideal"]
+
+
+def bits(v, n):
+    return [(v >> (n - 1 - k)) & 1 for k in range(n)]
+
+
+def won(game, cards, ans):
+    """The referee's rule, from the cards and the answers alone."""
+    if game == "chsh":
+        return int((ans[0] ^ ans[1]) == (cards[0] & cards[1]))
+    if game == "ghz":
+        return int(sum(ans) % 2 == (0 if not any(cards) else 1))
+    r, c = cards
+    alice, bob = ans
+    return int(alice[c] == bob[r] and sum(alice) % 2 == 0 and sum(bob) % 2 == 1)
+
+
+def decode(game, s):
+    """Rounds packed by the page's recorder: one hex digit per Telepathy round
+    (cards, answers), two base-36 digits per Three of a kind or Magic square round."""
+    out = []
+    if game == "chsh":
+        for ch in s:
+            v = int(ch, 16)
+            cards, ans = bits(v >> 2, 2), bits(v & 3, 2)
+            out.append([cards, ans])
+    else:
+        for i in range(0, len(s), 2):
+            v = int(s[i:i + 2], 36)
+            if game == "ghz":
+                out.append([bits(v >> 3, 3), bits(v & 7, 3)])
+            else:
+                k = v >> 6
+                out.append([[k // 3, k % 3], [bits((v >> 3) & 7, 3), bits(v & 7, 3)]])
+    return [[c, a, won(game, c, a), classical_win(game, tuple(c))] for c, a in out]
 
 
 def expand(run):
@@ -27,6 +62,8 @@ def expand(run):
         games[g] = out
     rounds = {}
     for g, rs in run.get("rounds", {}).items():
+        if isinstance(rs, str):
+            rs = decode(g, rs)
         rounds[g] = [r if isinstance(r, dict) else
                      {"cards": r[0], "answers": r[1], "win": r[2], "classical": r[3]} for r in rs]
     return {**run, "games": games, "rounds": rounds, "recorded": True}
