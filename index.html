@@ -1,0 +1,165 @@
+<div class="ns" id="ns">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="kicker">A Quantum Playground arcade · three games, one rule: no talking</p>
+      <h1>No Signal</h1>
+      <p class="lede">The referee hands each player a card. They can't talk. They win if their answers fit a rule that links every card. Against these games, no team of classical players can beat <b>75%</b>, or <b>8 in 9</b>. Give them entangled qubits instead of a phone line, and they do.</p>
+    </div>
+    <div class="booths" aria-hidden="true">
+      <div class="booth alice"><span class="who">Alice</span><span class="card" id="hero-card-a">?</span></div>
+      <div class="wall"><canvas id="static" class="static"></canvas><span class="wall-label">no signal</span></div>
+      <div class="booth bob"><span class="who">Bob</span><span class="card" id="hero-card-b">?</span></div>
+      <svg class="link" viewBox="0 0 400 120" preserveAspectRatio="none"><path id="link-path" d="M60,90 C150,10 250,10 340,90" /></svg>
+    </div>
+  </header>
+
+  <section class="console" aria-labelledby="console-h">
+    <h2 id="console-h" class="visually-hidden">Machine and play</h2>
+    <div class="machine">
+      <span class="dot" id="m-dot" aria-hidden="true"></span>
+      <div>
+        <p class="m-label">Your machine</p>
+        <p class="m-name" id="m-name">Reading the machine you picked…</p>
+        <p class="m-meta" id="m-meta">&nbsp;</p>
+      </div>
+    </div>
+    <div class="boards" id="boards" aria-live="polite"></div>
+    <div class="play">
+      <label class="shots"><span>Shots</span>
+        <select id="shots"><option value="500">500</option><option value="1000" selected>1,000</option><option value="2000">2,000</option></select>
+      </label>
+      <button class="go" id="go" type="button">Play all three games</button>
+      <p class="status" id="status" role="status">Showing a recorded run until you play.</p>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ game 1 -->
+  <section class="game" id="g-chsh" aria-labelledby="chsh-h">
+    <div class="game-head">
+      <p class="level">Game 1 · two players</p>
+      <h2 id="chsh-h">Telepathy</h2>
+      <p class="rule">Alice and Bob each get a card, 0 or 1. They answer 0 or 1. They win if their answers <b>match</b>, unless both cards are 1: then they must <b>differ</b>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-copy">
+        <h3>Try it without talking</h3>
+        <p>Decide in advance what each player answers for each card. Every strategy loses at least one of the four card pairs, so the best you can do is 75%. Shared coin flips don't help: they only choose between these strategies.</p>
+      </div>
+      <div class="sandbox" id="chsh-sandbox"></div>
+    </div>
+
+    <div class="step">
+      <div class="step-copy">
+        <h3>Now share a Bell pair</h3>
+        <p>Before the game, Alice and Bob each take one qubit of an entangled pair. When the card arrives, each measures their qubit along an angle chosen for that card, and answers with the result. Their answers match with probability cos²(angle difference). Turn the dials: the best you can reach is cos²(22.5°) = <b>85.4%</b>, Tsirelson's bound.</p>
+        <button type="button" class="ghost" id="chsh-best">Use the best angles</button>
+      </div>
+      <div class="dials" id="chsh-dials"></div>
+    </div>
+
+    <div class="result" id="chsh-result"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ game 2 -->
+  <section class="game" id="g-ghz" aria-labelledby="ghz-h">
+    <div class="game-head">
+      <p class="level">Game 2 · three players</p>
+      <h2 id="ghz-h">Three of a kind</h2>
+      <p class="rule">Alice, Bob and Carol each get a card. Either all three are 0, or exactly two are 1. They win if the number of 1s they answer is <b>even when all cards are 0</b>, and <b>odd otherwise</b>.</p>
+    </div>
+    <div class="step">
+      <div class="step-copy">
+        <h3>Try it without talking</h3>
+        <p>Pick each player's answer for each card. Add up the four rules and every player's answers cancel out, while the rules ask for an odd total: one card set always fails. Best: 75%.</p>
+      </div>
+      <div class="sandbox" id="ghz-sandbox"></div>
+    </div>
+    <div class="step">
+      <div class="step-copy">
+        <h3>Now share a GHZ state</h3>
+        <p>Three qubits entangled together, one per player. Each player measures X or Y depending on their card. With X on card 0 and Y on card 1, the product of the three results is fixed by quantum mechanics, so the team wins <b>every</b> round. Try other choices to see them fail.</p>
+        <button type="button" class="ghost" id="ghz-best">Use the winning bases</button>
+      </div>
+      <div class="bases" id="ghz-bases"></div>
+    </div>
+    <div class="result" id="ghz-result"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------ game 3 -->
+  <section class="game" id="g-ms" aria-labelledby="ms-h">
+    <div class="game-head">
+      <p class="level">Game 3 · two players</p>
+      <h2 id="ms-h">Magic square</h2>
+      <p class="rule">Alice gets a row of a 3×3 grid and Bob gets a column. Alice fills her row with 0s and 1s, with an <b>even</b> number of 1s. Bob fills his column with an <b>odd</b> number. They win if they agree on the square where row and column cross.</p>
+    </div>
+    <div class="step">
+      <div class="step-copy">
+        <h3>Try to fill the grid</h3>
+        <p>A classical team is just a grid they agreed on. Click squares to flip them. All three rows even means an even total; all three columns odd means an odd total. Both can't hold, so one of the nine row and column pairs always loses. Best: 8 in 9.</p>
+      </div>
+      <div class="grid-play" id="ms-grid"></div>
+    </div>
+    <div class="step">
+      <div class="step-copy">
+        <h3>Now share two Bell pairs</h3>
+        <p>Alice and Bob each hold two qubits, from two Bell pairs. Each square of the grid becomes a measurement on two qubits, the Mermin–Peres square. Measurements in a row commute and multiply to +1; in a column they multiply to −1. Each player measures a whole row or column at once, and the shared square always agrees.</p>
+      </div>
+      <div class="pauli" id="ms-pauli" aria-label="The Mermin-Peres square of two-qubit measurements"></div>
+    </div>
+    <div class="result" id="ms-result"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- no signal -->
+  <section class="game" id="g-nosig" aria-labelledby="nosig-h">
+    <div class="game-head">
+      <p class="level">Why this is not cheating</p>
+      <h2 id="nosig-h">Bob can't tell what Alice got</h2>
+      <p class="rule">Entanglement correlates answers, but it carries no message. Measured from the same run: Bob answers 1 about half the time, whichever card Alice holds. If he could tell, they could talk faster than light.</p>
+    </div>
+    <div class="nosig" id="nosig"></div>
+  </section>
+
+  <!-- -------------------------------------------------------------- atlas -->
+  <section class="game" id="g-atlas" aria-labelledby="atlas-h">
+    <div class="game-head">
+      <p class="level">Every machine</p>
+      <h2 id="atlas-h">Who beats the bound, and by how much</h2>
+      <p class="rule" id="atlas-note">The same three games with the best strategies, recorded on Qollab's machines. Noise pulls every quantum team back toward the classical line; the better the machine, the further above it stays.</p>
+    </div>
+    <div class="atlas" id="atlas" role="table" aria-label="Win rates on each machine"></div>
+  </section>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <ol class="steps">
+      <li><h3>One job, every game</h3><p>IonQ's runners take one job of one circuit, so the lab packs the games side by side: 4 Bell pairs for Telepathy, 4 GHZ states for Three of a kind and two magic-square rounds, 28 qubits on a Forte. Local simulators run every card set as its own small circuit.</p></li>
+      <li><h3>Cards are fixed per group</h3><p>Each group of qubits is wired to one set of cards, and every shot plays all of them, so each card set gets the same number of rounds. The win rate is the average over card sets, as if the referee picked them at random.</p></li>
+      <li><h3>Scoring</h3><p>For Telepathy, the Bell parameter S = E₀₀ + E₀₁ + E₁₀ − E₁₁ equals 8 × win − 4: classical teams stay at or below 2, quantum mechanics allows up to 2√2 ≈ 2.83. The margin over the classical bound is reported in standard errors.</p></li>
+      <li><h3>Classical baselines</h3><p>The classical bounds are checked by brute force over every deterministic strategy: 16 for Telepathy, 64 for Three of a kind, 4,096 grid pairs for the magic square. The race replays the same cards against a best classical strategy.</p></li>
+    </ol>
+  </section>
+
+  <section class="limits" aria-labelledby="lim-h">
+    <h2 id="lim-h">What this shows, and what it doesn't</h2>
+    <ul>
+      <li><strong>No loophole-free claim.</strong> A real Bell test separates the players far enough that no signal could pass, and catches every particle (Hensen et al. 2015, the 2022 Nobel Prize). Here every qubit sits in one machine, or one simulation, so the games show quantum correlations, not a proof that nature is nonlocal.</li>
+      <li><strong>Simulators are models.</strong> On a noise-model simulator the numbers come from IonQ's or IBM's model of their hardware, not from ions or circuits.</li>
+      <li><strong>Packed circuits.</strong> On IonQ all groups share one circuit, so crosstalk between them on real hardware would count as noise.</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <div class="refs">
+      <h2>Sources</h2>
+      <ol>
+        <li>Clauser, Horne, Shimony &amp; Holt, <i>PRL</i> 23, 880 (1969); Tsirelson, <i>Lett. Math. Phys.</i> 4, 93 (1980).</li>
+        <li>Greenberger, Horne, Shimony &amp; Zeilinger, <i>Am. J. Phys.</i> 58, 1131 (1990); Mermin, <i>Physics Today</i> 43(6), 9 (1990).</li>
+        <li>Mermin, <i>PRL</i> 65, 3373 (1990); Peres, <i>Phys. Lett. A</i> 151, 107 (1990); Aravind, <i>Am. J. Phys.</i> 72, 1303 (2004).</li>
+        <li>Hensen et al., “Loophole-free Bell inequality violation”, <i>Nature</i> 526, 682 (2015).</li>
+      </ol>
+    </div>
+    <p class="support">This effort is supported by Qollab &amp; IonQ.</p>
+    <p class="fine">MIT licence. Built with Qiskit. Every number is computed in your browser from the shots the machine returned.</p>
+  </footer>
+</div>
