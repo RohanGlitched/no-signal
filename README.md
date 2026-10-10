@@ -2,7 +2,7 @@
 
 # No Signal
 
-**[Play it on Qollab](https://qollab.xyz/u/master/no-signal)** · **[How it works](#one-job-every-game)** · **[Results](#results)** · MIT
+**[Play it on Qollab](https://qollab.xyz/u/master/no-signal)** · **[Demo video](https://youtu.be/HS_ywKyfT8k)** · **[How it works](#one-job-every-game)** · **[Results](#results)** · MIT
 
 
 **Three games no team can win without talking, unless the players share entangled qubits.** Pick a machine in Qollab's runner, tune the players' strategies, and beat the classical limit on IonQ's trapped-ion noise models, IBM's superconducting noise models or an ideal simulator.
