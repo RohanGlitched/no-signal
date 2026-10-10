@@ -28,6 +28,9 @@
       <label class="shots"><span>Shots</span>
         <select id="shots"><option value="500">500</option><option value="1000" selected>1,000</option><option value="2000">2,000</option></select>
       </label>
+      <label class="shots"><span>Play</span>
+        <select id="what"><option value="all" selected>All three games</option><option value="ms">The whole magic square</option></select>
+      </label>
       <button class="go" id="go" type="button">Play all three games</button>
       <p class="status" id="status" role="status">Showing a recorded run until you play.</p>
     </div>
@@ -39,6 +42,14 @@
       <p class="level">Game 1 · two players</p>
       <h2 id="chsh-h">Telepathy</h2>
       <p class="rule">Alice and Bob each get a card, 0 or 1. They answer 0 or 1. They win if their answers <b>match</b>, unless both cards are 1: then they must <b>differ</b>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-copy">
+        <h3>Your turn</h3>
+        <p>Play twenty rounds as Alice. You see only your own card; Bob follows the plan you agreed before the game. A quantum team plays the same deals, with answers taken from real recorded rounds. Try to keep up.</p>
+      </div>
+      <div class="duel" id="duel"></div>
     </div>
 
     <div class="step">
@@ -78,7 +89,7 @@
     <div class="step">
       <div class="step-copy">
         <h3>Now share a GHZ state</h3>
-        <p>Three qubits entangled together, one per player. Each player measures X or Y depending on their card. With X on card 0 and Y on card 1, the product of the three results is fixed by quantum mechanics, so the team wins <b>every</b> round. Try other choices to see them fail.</p>
+        <p>Three qubits entangled together, one per player. A qubit can be read in different ways; X and Y are two of them, like asking two different yes-or-no questions. Each player reads their qubit as X or Y depending on their card. With X on card 0 and Y on card 1, the product of the three results is fixed by quantum mechanics, so the team wins <b>every</b> round. Try other choices to see them fail.</p>
         <button type="button" class="ghost" id="ghz-best">Use the winning bases</button>
       </div>
       <div class="bases" id="ghz-bases"></div>
@@ -103,7 +114,7 @@
     <div class="step">
       <div class="step-copy">
         <h3>Now share two Bell pairs</h3>
-        <p>Alice and Bob each hold two qubits, from two Bell pairs. Each square of the grid becomes a measurement on two qubits, the Mermin–Peres square. Measurements in a row commute and multiply to +1; in a column they multiply to −1. Each player measures a whole row or column at once, and the shared square always agrees.</p>
+        <p>Alice and Bob each hold two qubits, from two Bell pairs. Each square of the grid becomes a question asked of two qubits at once, written below as a pair of X, Y and Z readings (the Mermin–Peres square). The questions in a row can all be asked together and their answers always multiply to +1, an even row; in a column they multiply to −1, an odd column. Each player asks a whole row or column, and where they cross, entanglement makes them agree every time.</p>
       </div>
       <div class="pauli" id="ms-pauli" aria-label="The Mermin-Peres square of two-qubit measurements"></div>
     </div>
@@ -115,7 +126,7 @@
     <div class="game-head">
       <p class="level">Why this is not cheating</p>
       <h2 id="nosig-h">Bob can't tell what Alice got</h2>
-      <p class="rule">Entanglement correlates answers, but it carries no message. Measured from the same run: Bob answers 1 about half the time, whichever card Alice holds. If he could tell, they could talk faster than light.</p>
+      <p class="rule">Entanglement correlates answers, but it carries no message. From the same Telepathy rounds, Bob answers 1 about half the time, whichever card Alice holds. If he could tell, they could talk faster than light. In a simulator this is a sanity check rather than a discovery: quantum mechanics guarantees it, so a gap bigger than chance would point to a bias in the machine or the scoring. On IonQ, each of Alice’s cards is played on a different pair of qubits, so the two bars come from different qubits.</p>
     </div>
     <div class="nosig" id="nosig"></div>
   </section>
@@ -125,10 +136,10 @@
     <div class="game-head">
       <p class="level">Noise</p>
       <h2 id="noise-h">How much noise can entanglement take?</h2>
-      <p class="rule">Noise washes the shared state toward random bits. Drag the visibility down and watch each game fall to its classical limit at a different point: Three of a kind holds on down to 50% visibility, Telepathy needs 71%, and the magic square, which spends two Bell pairs on every cell it shares, needs 85%. The diamonds are the recorded machines, each placed on a game's curve at its measured win rate.</p>
+      <p class="rule">Noise washes the shared state toward random bits. Drag the visibility down and watch each game fall to its classical limit at a different point: Three of a kind holds on down to 50% visibility, Telepathy needs 71%, and the magic square, which spends two Bell pairs on every cell it shares, needs 85%. The diamonds are the recorded machines, each placed at the visibility its Telepathy score implies. On the other two curves that is a prediction: a diamond above the line beat the simple model, one below it lost to it.</p>
     </div>
     <div class="noise" id="noise"></div>
-    <p class="nb-note">Model: each Bell pair becomes v·|Φ⁺⟩⟨Φ⁺| + (1 − v)·I/4, and the GHZ state likewise with I/8. Telepathy then wins ½ + (cos²(π/8) − ½)·v and Three of a kind ½ + v/2. In the square, four cells depend on one pair and five on both, so it wins (4(1 + v) + 5(1 + v²))/18. The tests check these curves against Qiskit Aer.</p>
+    <details class="nb-note"><summary>The model, for physicists</summary><p>Model: each Bell pair becomes v·|Φ⁺⟩⟨Φ⁺| + (1 − v)·I/4, and the GHZ state likewise with I/8. Telepathy then wins ½ + (cos²(π/8) − ½)·v and Three of a kind ½ + v/2. In the square, four cells depend on one pair and five on both, so it wins (4(1 + v) + 5(1 + v²))/18. The tests check these curves against Qiskit Aer.</p></details>
   </section>
 
   <!-- -------------------------------------------------------------- atlas -->
@@ -154,7 +165,7 @@
   <section class="limits" aria-labelledby="lim-h">
     <h2 id="lim-h">What this shows, and what it doesn't</h2>
     <ul>
-      <li><strong>No loophole-free claim.</strong> A real Bell test separates the players far enough that no signal could pass, and catches every particle (Hensen et al. 2015, the 2022 Nobel Prize). Here every qubit sits in one machine, or one simulation, so the games show quantum correlations, not a proof that nature is nonlocal.</li>
+      <li><strong>No loophole-free claim.</strong> A real Bell test separates the players far enough that no signal could pass, and catches every particle, as Hensen et al. did in 2015. The 2022 Nobel Prize went to Aspect, Clauser and Zeilinger for this line of experiments. Here every qubit sits in one machine, or one simulation, so the games show quantum correlations, not a proof that nature is nonlocal.</li>
       <li><strong>Simulators are models.</strong> On a noise-model simulator the numbers come from IonQ's or IBM's model of their hardware, not from ions or circuits.</li>
       <li><strong>Packed circuits.</strong> On IonQ all groups share one circuit, so crosstalk between them on real hardware would count as noise.</li>
     </ul>

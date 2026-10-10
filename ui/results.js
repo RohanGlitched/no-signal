@@ -17,12 +17,13 @@ export function renderBoards(host, run, classical) {
   for (const g of ['chsh', 'ghz', 'ms']) {
     const s = run && run.games && run.games[g];
     const v = s ? s.win : null;
-    const over = s && s.lo > classical[g];
+    const partial = g === 'ms' && s && s.covered < 9;
+    const over = s && !partial && s.lo > classical[g];
     host.append(h('div', { class: 'board' }, [
       h('span', { class: 'bname', text: GAME_NAME[g] }),
-      h('span', { class: `bnum ${s ? (over ? 'over' : 'under') : ''}`, text: s ? pct(v) : '—' }),
+      h('span', { class: `bnum ${s ? (over ? 'over' : partial ? 'part' : 'under') : ''}`, text: s ? pct(v) : '—' }),
       gauge(v, classical[g]),
-      h('span', { class: 'bsub', text: s ? `classical limit ${LIMIT_TXT[g]} · ${s.rounds.toLocaleString()} rounds` : `not on this machine in one job` }),
+      h('span', { class: 'bsub', text: !s ? `not on this machine in one job` : partial ? `${s.covered} of 9 pairs: not a test on its own · ${s.rounds.toLocaleString()} rounds` : `classical limit ${LIMIT_TXT[g]} · ${s.rounds.toLocaleString()} rounds` }),
     ]));
   }
 }
@@ -89,6 +90,15 @@ function race(host, game, rounds) {
   } else run();
 }
 
+// How likely a classical team gets this far above its limit by luck alone (one-sided normal tail).
+function luck(z) {
+  if (!z || z < 2) return '';
+  const log10p = (-z * z / 2 - Math.log(z * Math.sqrt(2 * Math.PI))) / Math.LN10;
+  if (log10p < -12) return 'A classical team gets this lucky less than once in a trillion tries.';
+  const n = Math.round(-log10p);
+  return n >= 2 ? `A classical team gets this lucky about once in 10<sup>${n}</sup> tries.` : '';
+}
+
 export function renderResult(host, game, run) {
   host.innerHTML = '';
   const s = run && run.games && run.games[game];
@@ -96,25 +106,28 @@ export function renderResult(host, game, run) {
     host.append(h('p', { class: 'res-empty', text: `This machine can't fit ${GAME_NAME[game]} into its one job alongside the other games. Pick IonQ Forte or a local simulator to play it.` }));
     return;
   }
-  const over = s.lo > s.classical;
+  // the 8-in-9 limit holds over all nine pairs: a classical team can win any eight every time
+  const partial = game === 'ms' && s.covered < 9;
+  const over = !partial && s.lo > s.classical;
   const big = h('div', { class: 'res-big' }, [
     h('span', { class: 'lbl', text: `${run.recorded ? 'Recorded' : 'Measured'} on ${run.profile.label.replace(' noise model', '')}` }),
-    h('span', { class: `val ${over ? 'over' : 'under'}`, text: pct(s.win) }),
+    h('span', { class: `val ${over ? 'over' : partial ? 'part' : 'under'}`, text: pct(s.win) }),
     h('span', { class: 'ci', text: `95% interval ${pct(s.lo)} – ${pct(s.hi)} · ${s.rounds.toLocaleString()} rounds` }),
   ]);
-  let say = over
-    ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${!s.sigma ? '—' : s.sigma >= 100 ? 'more than 100' : s.sigma.toFixed(0)} standard errors</b>${s.win === 1 ? `, without losing one of ${s.rounds.toLocaleString()} rounds` : ''}. No team without entanglement could do this.`
+  let say = partial
+    ? `This job asked ${s.covered} of the 9 row and column pairs, and the 8-in-9 limit only holds over all nine: a classical team can win any ${s.covered} pairs every time. So on its own this is not a test. Choose <b>The whole magic square</b> under Play to ask all nine.`
+    : over
+    ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${!s.sigma ? '—' : s.sigma >= 100 ? 'more than 100' : s.sigma.toFixed(0)} standard errors</b>${s.win === 1 ? `, without losing one of ${s.rounds.toLocaleString()} rounds` : ''}. ${luck(s.sigma)} No team without entanglement could do this.`
     : `Not above the classical limit of ${LIMIT_TXT[game]}${run.custom ? ': try other settings' : ''}.`;
   if (game === 'chsh' && s.S !== undefined) {
-    say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)}; classical ≤ 2, quantum ≤ 2.828.`;
+    say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)} (95%); classical ≤ 2, quantum ≤ 2.828.`;
     if (s.S > 2 * Math.SQRT2 && s.S - 1.96 * s.S_se <= 2 * Math.SQRT2) say += ' Above 2.828 only by chance: the bound lies inside the error bar, as it should with a finite number of rounds.';
   }
-  if (game === 'ms' && s.covered < 9) say += ` This run asked ${s.covered} of the 9 row and column pairs; IonQ's one-circuit job has room for ${s.covered}.`;
   big.append(h('p', { class: 'say', html: say }));
   const chart = h('div', { class: 'res-chart' }, [cardBars(game, s)]);
   const raceHost = h('div', { class: 'race' });
   host.append(h('div', { class: 'res-card' }, [big, chart, raceHost]));
-  if (run.rounds && run.rounds[game] && run.rounds[game].length) race(raceHost, game, run.rounds[game]);
+  if (!partial && run.rounds && run.rounds[game] && run.rounds[game].length) race(raceHost, game, run.rounds[game]);
 }
 
 export function renderNoSignal(host, run) {
@@ -163,6 +176,7 @@ export function renderAtlas(host, runs, currentLabel) {
       const s = r.games[g];
       if (!s) return h('span', { class: 'acell' }, [h('span', { class: 'v', text: '—' })]);
       const extra = g === 'chsh' && s.S !== undefined ? ` · S ${s.S.toFixed(2)}` : '';
+      if (g === 'ms' && s.covered < 9) return h('span', { class: 'acell part' }, [h('span', { class: 'v', text: `${pct(s.win)} · ${s.covered} of 9 pairs` }), h('small', { text: 'not a test on its own' })]);
       return h('span', { class: 'acell' }, [h('span', { class: 'v', text: pct(s.win) + extra }), gauge(s.win, s.classical)]);
     });
     host.append(h('div', { class: `arow${you ? ' you' : ''}`, role: 'row' }, [

@@ -93,17 +93,19 @@ def summarize(game, per_card):
         # Bell parameter S = E00 + E01 + E10 - E11, with E = 2 P(win) - 1 (sign folded in)
         S = sum(2 * r - 1 for r in rates)
         out["S"] = S
-        out["S_se"] = 4 * se
+        out["S_se"] = 8 * se          # S = 8 w - 4, and se is the error of w
     return out
 
 
-def play(backend, angles=None, ghz=None, shots=1000, seed=None):
+def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "ghz", "ms"), ms_cards=None):
     t0 = time.time()
     angles = angles or dict(BEST_ANGLES)
     ghz = ghz or {k: tuple(v) for k, v in BEST_GHZ.items()}
     prof = profile(backend)
+    requested = tuple(games)
     seed = int(seed if seed is not None else time.time()) % 100000
-    groups = plan(prof["cap"], prof["one_circuit"], angles, ghz, seed=seed)
+    groups = plan(prof["cap"], prof["one_circuit"], angles, ghz, seed=seed, games=tuple(games),
+                  ms_cards=[tuple(c) for c in ms_cards] if ms_cards else None)
     pairs = circuits(groups, prof["one_circuit"], angles, ghz)
     qcs = [qc for qc, _ in pairs]
     if prof["family"] == "ibm":
@@ -173,7 +175,7 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None):
         "circuits": len(qcs), "qubits": max(q.num_qubits for q in qcs), "shots_per_circuit": per,
         "two_qubit_gates": twoq, "swaps": swaps, "seed": seed,
         "games": games, "nosignal": nosig, "rounds": rounds,
-        "missing": [g for g in ("chsh", "ghz", "ms") if g not in games],
+        "missing": [g for g in ("chsh", "ghz", "ms") if g not in games], "only": list(requested) if len(requested) < 3 else None,
         "timing": {"build": t1 - t0, "run": t2 - t1, "score": t3 - t2},
         "when": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
     })

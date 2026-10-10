@@ -5,6 +5,7 @@ import { chshSandbox, ghzSandbox, magicGrid } from './ui/sandbox.js';
 import { chshDials, ghzBases, pauliSquare } from './ui/controls.js';
 import { renderBoards, renderResult, renderNoSignal, renderAtlas, staticWall } from './ui/results.js';
 import { noiseBudget } from './ui/noise.js';
+import { duel } from './ui/duel.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -19,7 +20,7 @@ console.log('No Signal: loading the arcade…');
 // that is how the page is tested end to end inside the sandboxed frame.
 globalThis.addEventListener('message', (e) => {
   if (!e.data || typeof e.data.bt !== 'string') return;
-  if (e.data.bt === 'run') play(e.data.shots);
+  if (e.data.bt === 'run') play(e.data.shots, e.data.opts);
   if (e.data.bt === 'dump' && state.run) {
     (e.source || window.parent).postMessage({ bt: 'dump', run: JSON.stringify(state.run) }, '*');
     return;
@@ -41,9 +42,26 @@ magicGrid($('ms-grid'));
 const redrawDials = chshDials($('chsh-dials'), state, settingsChanged);
 const redrawBases = ghzBases($('ghz-bases'), state, settingsChanged);
 pauliSquare($('ms-pauli'));
+const theDuel = duel($('duel'), () => (state.run && state.run.rounds && state.run.rounds.chsh && state.run.rounds.chsh.length ? state.run : null));
 $('chsh-best').addEventListener('click', () => { state.angles = { a0: 0, a1: 45, b0: 22.5, b1: -22.5 }; redrawDials(); settingsChanged(); });
 $('ghz-best').addEventListener('click', () => { state.ghz = { p0: ['X', 'Y'], p1: ['X', 'Y'], p2: ['X', 'Y'] }; redrawBases(); settingsChanged(); });
 $('go').addEventListener('click', () => play());
+$('what').addEventListener('change', () => { $('go').textContent = goLabel(); });
+
+function goLabel() {
+  return $('what').value === 'ms' ? 'Play the magic square' : 'Play all three games';
+}
+
+// The whole square: every one of the 9 row and column pairs. A one-circuit
+// machine fits 7 rounds per job, so it starts with the pairs played least.
+function squareOptions() {
+  const all = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]];
+  const seen = new Map();
+  const ms = state.run && state.run.games && state.run.games.ms;
+  if (ms && state.run.profile.label === state.info.profile.label) for (const c of ms.cards) seen.set(c.cards.join(), c.rounds);
+  all.sort((a, b) => (seen.get(a.join()) || 0) - (seen.get(b.join()) || 0));
+  return { games: ['ms'], ms_cards: all };
+}
 
 try {
   await boot();
@@ -89,6 +107,7 @@ function renderAll() {
   }
   renderAtlas($('atlas'), runs, state.info.profile.label);
   noiseBudget($('noise'), runs);
+  theDuel.refresh();
   const hit = state.run && state.run.games && state.run.games.ms && state.run.games.ms.cards[0];
   pauliSquare($('ms-pauli'), hit ? hit.cards : null);
 }
@@ -99,7 +118,7 @@ function settingsChanged() {
   if (!state.sentJob) setStatus(best ? 'Best strategies set. Press Play to run all three games.' : 'Your own strategy is set. Press Play to see how it does on this machine.');
 }
 
-async function play(shotsOverride) {
+async function play(shotsOverride, optsOverride) {
   const p = state.info.profile;
   if (p.one_circuit && state.sentJob) {
     setStatus('IonQ machines take one job per run. Press Stop, then Run, to play again.', 'err');
@@ -118,20 +137,28 @@ async function play(shotsOverride) {
   console.log(`Playing on ${p.label}…`);
   try {
     if (p.one_circuit) state.sentJob = true;
-    const res = JSON.parse(await web.play.callPromising(backend, JSON.stringify(state.angles), JSON.stringify(state.ghz), shots));
+    const opts = optsOverride || ($('what').value === 'ms' ? squareOptions() : null);
+    const res = JSON.parse(await web.play.callPromising(backend, JSON.stringify(state.angles), JSON.stringify(state.ghz), shots, opts ? JSON.stringify(opts) : ''));
     if (!res.ok) {
       setStatus(res.error === 'one_job' ? 'IonQ machines take one job per run. Press Stop, then Run, to play again.'
         : `The run failed: ${res.message || 'unknown error'}. The console below has the details.`, 'err');
       return;
     }
-    const best = JSON.stringify(state.angles) === JSON.stringify({ a0: 0, a1: 45, b0: 22.5, b1: -22.5 });
+    const best = JSON.stringify(state.angles) === JSON.stringify({ a0: 0, a1: 45, b0: 22.5, b1: -22.5 })
+      && JSON.stringify(state.ghz) === JSON.stringify({ p0: ['X', 'Y'], p1: ['X', 'Y'], p2: ['X', 'Y'] });
     res.custom = !best;
-    state.run = res;
+    const prev = state.run;
+    if (res.only && prev && prev.games && prev.profile.label === res.profile.label) {
+      // a square-only run keeps the other games from the run already shown
+      state.run = { ...prev, games: { ...prev.games, ...res.games }, rounds: { ...prev.rounds, ...res.rounds }, when: res.when, recorded: false };
+    } else state.run = res;
     state.live = true;
     renderAll();
     const g = res.games;
     const secs = Math.round((performance.now() - t0) / 1000);
-    setStatus(`Done in ${secs} s. ${g.chsh ? `Telepathy ${(g.chsh.win * 100).toFixed(1)}%` : ''}${g.ghz ? `, Three of a kind ${(g.ghz.win * 100).toFixed(1)}%` : ''}${g.ms ? `, Magic square ${(g.ms.win * 100).toFixed(1)}%` : ''}. Saved in the console as a JSON file.`, 'done');
+    const parts = [['chsh', 'Telepathy'], ['ghz', 'Three of a kind'], ['ms', 'Magic square']]
+      .filter(([k]) => res.games[k]).map(([k, n]) => `${n} ${(res.games[k].win * 100).toFixed(1)}%`);
+    setStatus(`Done in ${secs} s. ${parts.join(', ')}. Saved in the console as a JSON file.`, 'done');
     console.log(`Played in ${secs} s on ${p.label}: ` + Object.entries(g).map(([k, v]) => `${k} ${(v.win * 100).toFixed(1)}% of ${v.rounds}`).join(', '));
     document.getElementById('g-chsh').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
@@ -140,7 +167,7 @@ async function play(shotsOverride) {
     setStatus(/one job/i.test(text) ? 'IonQ machines take one job per run. Press Stop, then Run, to play again.' : `The run failed: ${text.slice(0, 200)}`, 'err');
   } finally {
     clearInterval(tick);
-    go.textContent = 'Play all three games';
+    go.textContent = goLabel();
     go.disabled = p.one_circuit && state.sentJob;
   }
 }

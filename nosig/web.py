@@ -27,11 +27,13 @@ def boot(backend) -> str:
                        "atlas": _read(ATLAS_FILE) or {"runs": []}})
 
 
-def play(backend, angles_json: str = "", ghz_json: str = "", shots: int = 1000) -> str:
+def play(backend, angles_json: str = "", ghz_json: str = "", shots: int = 1000, options_json: str = "") -> str:
     try:
         angles = json.loads(angles_json) if angles_json else None
         ghz = {k: tuple(v) for k, v in json.loads(ghz_json).items()} if ghz_json else None
-        out = _play.play(backend, angles=angles, ghz=ghz, shots=int(shots))
+        opts = json.loads(options_json) if options_json else {}
+        out = _play.play(backend, angles=angles, ghz=ghz, shots=int(shots),
+                         games=tuple(opts.get("games") or ("chsh", "ghz", "ms")), ms_cards=opts.get("ms_cards"))
         try:
             from js import sendFile
             sendFile("no-signal-run.json", "application/json", out)

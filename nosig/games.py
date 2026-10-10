@@ -140,25 +140,25 @@ def score(group: Group, bits):
 SIZES = {"chsh": 2, "ghz": 3, "ms": 4}
 
 
-def plan(cap: int, one_circuit: bool, angles, ghz_strategy, ms_cards=None, seed=0):
+def plan(cap: int, one_circuit: bool, angles, ghz_strategy, ms_cards=None, seed=0, games=("chsh", "ghz", "ms")):
     """Groups to play. One circuit (IonQ): pack what fits, in order CHSH,
     GHZ, then magic-square question pairs. Otherwise one small circuit per
     group, covering every question pair of every game."""
     import random
     rng = random.Random(seed)
     if not one_circuit:
-        groups = [Group("chsh", c, [0, 1]) for c in CHSH_CARDS]
-        groups += [Group("ghz", c, [0, 1, 2]) for c in GHZ_CARDS]
-        groups += [Group("ms", c, [0, 1, 2, 3]) for c in MS_CARDS]
+        groups = [Group("chsh", c, [0, 1]) for c in CHSH_CARDS] if "chsh" in games else []
+        groups += [Group("ghz", c, [0, 1, 2]) for c in GHZ_CARDS] if "ghz" in games else []
+        groups += [Group("ms", c, [0, 1, 2, 3]) for c in (ms_cards or MS_CARDS)] if "ms" in games else []
         return groups
     groups, used = [], 0
     for game, cards in (("chsh", CHSH_CARDS), ("ghz", GHZ_CARDS)):
-        if used + SIZES[game] * len(cards) <= cap:
+        if game in games and used + SIZES[game] * len(cards) <= cap:
             for c in cards:
                 groups.append(Group(game, c, list(range(used, used + SIZES[game]))))
                 used += SIZES[game]
     pool = list(ms_cards) if ms_cards else rng.sample(MS_CARDS, len(MS_CARDS))
-    for c in pool:
+    for c in pool if "ms" in games else []:
         if used + 4 > cap:
             break
         groups.append(Group("ms", c, list(range(used, used + 4))))

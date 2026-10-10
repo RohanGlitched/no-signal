@@ -29,9 +29,13 @@ for r in atlas["runs"]:
     rows.append(f'| {r["profile"]["label"]} | {cell(c)} | {c["S"]:.2f} ± {1.96 * c["S_se"]:.2f} | {cell(g.get("ghz"))} | {ms} |'
                 if c else f'| {r["profile"]["label"]} | — | — | {cell(g.get("ghz"))} | {ms} |')
 rows.append("| *ideal (theory)* | 85.4% | 2.83 | 100% | 100% |")
+rows.append("")
+rows.append("SE: standard errors above the classical limit. S is shown with its 95% interval. On the IonQ Forte models the magic square pools two jobs, so it covers all nine row and column pairs. Aria's 21 qubits leave no room for the square beside the other games.")
 table = "\n".join(rows)
 p = os.path.join(root, "README.md")
 s = open(p, encoding="utf-8").read()
-s = re.sub(r"\| Machine \| Telepathy.*?\n(?=\n)", table + "\n", s, count=1, flags=re.S)
+a = s.index("| Machine | Telepathy")
+b = s.index("\n## ", a)
+s = s[:a] + table + "\n" + s[b:]
 open(p, "w", encoding="utf-8").write(s)
 print(table)

@@ -43,8 +43,12 @@ export function noiseBudget(host, runs) {
   panel.append(label, read);
   host.append(svg, panel);
 
-  // machines: each placed on a game's curve at the visibility its win rate implies
-  const pts = (runs || []).filter((r) => r.games).map((r) => ({ label: r.profile.label.replace(' noise model', ''), games: r.games }));
+  // machines: placed at the Bell-pair visibility their Telepathy score implies,
+  // then the other two games are a prediction the measurement can miss
+  const pts = (runs || []).filter((r) => r.games && r.games.chsh && r.profile.family !== 'ideal').map((r) => ({
+    label: r.profile.label.replace(' noise model', ''), games: r.games,
+    v: Math.max(0.4, Math.min(1, GAMES[0].inv(r.games.chsh.win))),
+  }));
 
   const draw = (v) => {
     clear(svg);
@@ -73,10 +77,12 @@ export function noiseBudget(host, runs) {
       for (const g of GAMES) {
         const s = p.games[g.key];
         if (!s) continue;
-        const vv = Math.max(0.4, Math.min(1, g.inv(s.win)));
-        const cx = x(vv), cy = y(g.win(vv));
+        if (g.key === 'ms' && s.covered < 9) continue;
+        const cx = x(p.v), cy = y(s.win);
         const dm = el('path', { d: `M${cx},${cy - 6}L${cx + 6},${cy}L${cx},${cy + 6}L${cx - 6},${cy}Z`, fill: g.color, class: 'nb-run' }, svg);
-        el('title', { text: `${p.label}: ${g.name} ${pct(s.win)}, as if the state kept ${pct(vv)} of its visibility` }, dm);
+        el('title', { text: g.key === 'chsh'
+          ? `${p.label}: Telepathy ${pct(s.win)}, so visibility ${pct(p.v)}`
+          : `${p.label}: ${g.name} measured ${pct(s.win)}, the model predicts ${pct(g.win(p.v))} at visibility ${pct(p.v)}` }, dm);
       }
     }
     vOut.textContent = pct(v, 1);

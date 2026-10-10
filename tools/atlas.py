@@ -75,9 +75,32 @@ def rank(run):
     return (ORDER.index(key) if key in ORDER else len(ORDER), p["label"])
 
 
+def merge_square(runs):
+    """Square-only jobs (run["only"] == ["ms"]) join the full run on the same
+    machine: their magic-square counts are pooled card by card with its own."""
+    main = [r for r in runs if not r.get("only")]
+    for extra in (r for r in runs if r.get("only") == ["ms"]):
+        host = next((r for r in main if r["profile"]["label"] == extra["profile"]["label"]), None)
+        if host is None:
+            main.append(extra)
+            continue
+        per = {}
+        for src in (host, extra):
+            ms = src["games"].get("ms")
+            for c in (ms["cards"] if ms else []):
+                t = per.setdefault(tuple(c["cards"]), [0, 0])
+                t[0] += c["wins"]
+                t[1] += c["rounds"]
+        host["games"]["ms"] = summarize("ms", per)
+        host["rounds"]["ms"] = (extra["rounds"].get("ms", []) + host["rounds"].get("ms", []))[:120]
+        host["ms_jobs"] = host.get("ms_jobs", 0) + 1          # extra square-only jobs pooled in
+        host["missing"] = [g for g in host.get("missing", []) if g != "ms"]
+    return main
+
+
 def main():
     root = os.path.join(os.path.dirname(__file__), "..", "data")
-    runs = [expand(json.load(open(f, encoding="utf-8"))) for f in sorted(glob.glob(os.path.join(root, "runs", "*.json")))]
+    runs = merge_square([expand(json.load(open(f, encoding="utf-8"))) for f in sorted(glob.glob(os.path.join(root, "runs", "*.json")))])
     runs.sort(key=rank)
     with open(os.path.join(root, "atlas.json"), "w", encoding="utf-8") as f:
         json.dump({"runs": runs}, f, separators=(",", ":"))
