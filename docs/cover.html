@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0}
+  .c{width:1600px;height:900px;background:#f2f4f8;position:relative;overflow:hidden;font-family:Figtree,sans-serif;color:#10141d}
+  .k{position:absolute;left:96px;top:70px;font-size:26px;color:#7c8697;font-weight:600}
+  h1{position:absolute;left:88px;top:108px;margin:0;font:800 190px/0.86 "Bricolage Grotesque";letter-spacing:-0.05em}
+  .lede{position:absolute;left:96px;top:300px;width:760px;font-size:33px;line-height:1.38;color:#4a5466}
+  .lede b{color:#d7263d}
+  .booths{position:absolute;right:96px;top:110px;width:560px;height:300px;display:grid;grid-template-columns:1fr 90px 1fr}
+  .b{border-radius:22px;display:grid;place-items:center;align-content:center;gap:14px;font:600 28px "Bricolage Grotesque"}
+  .a{background:#dff4f1;border:3px solid #0b9b8a;color:#0b9b8a}
+  .bb{background:#ece8ff;border:3px solid #6b4cf0;color:#6b4cf0}
+  .card{width:84px;height:112px;border-radius:12px;background:#fff;border:2px solid #c7cfdb;display:grid;place-items:center;font:800 50px "Bricolage Grotesque";color:#10141d}
+  .wall{margin:14px 12px;border-radius:10px;background:repeating-linear-gradient(0deg,#3a404c 0 3px,#8a93a3 3px 5px,#20242c 5px 8px)}
+  .scores{position:absolute;left:96px;right:96px;bottom:84px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .s{background:#fff;border:1px solid #dde2ea;border-radius:20px;padding:22px 26px}
+  .s .n{font:600 24px "Bricolage Grotesque";color:#4a5466}
+  .s .v{font:800 66px/1 "Bricolage Grotesque";color:#0b9b8a;margin-top:8px}
+  .s .l{font:600 20px "JetBrains Mono";color:#d7263d;margin-top:8px}
+  .s .g{height:12px;border-radius:6px;background:#e6eaf1;margin-top:12px;position:relative}
+  .s .g i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#0b9b8a,#6b4cf0)}
+  .s .g b{position:absolute;top:-6px;bottom:-6px;width:3px;background:#d7263d}
+</style></head><body>
+<div class="c">
+  <div class="k">A Quantum Playground arcade · Qiskit on Qollab</div>
+  <h1>No Signal</h1>
+  <div class="lede">Three games no team can win without talking: <b>75%</b> is the classical limit. Share entangled qubits on IonQ instead, and win anyway.</div>
+  <div class="booths"><div class="b a">Alice<span class="card">1</span></div><div class="wall"></div><div class="b bb">Bob<span class="card">0</span></div></div>
+  <div class="scores">
+    <div class="s"><div class="n">Telepathy · CHSH</div><div class="v">85%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:85%"></i><b style="left:75%"></b></div></div>
+    <div class="s"><div class="n">Three of a kind · GHZ</div><div class="v">100%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:100%"></i><b style="left:75%"></b></div></div>
+    <div class="s"><div class="n">Magic square · Mermin–Peres</div><div class="v">100%</div><div class="l">classical ≤ 88.9%</div><div class="g"><i style="width:100%"></i><b style="left:88.9%"></b></div></div>
+  </div>
+</div>
+</body></html>

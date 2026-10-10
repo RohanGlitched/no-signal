@@ -74,12 +74,16 @@ def summarize(game, per_card):
     rates = [per_card[c][0] / max(per_card[c][1], 1) for c in cards]
     n_tot = sum(per_card[c][1] for c in cards)
     w = sum(rates) / len(rates)
-    # variance of an equal-weight mean of independent binomials
-    var = sum(r * (1 - r) / max(per_card[c][1], 1) for r, c in zip(rates, cards)) / len(rates) ** 2
-    se = math.sqrt(max(var, 1e-12))
+    # variance of an equal-weight mean of independent binomials; each rate is
+    # smoothed as (k+1)/(n+2) so a perfect score keeps an honest, nonzero error
+    sm = [(per_card[c][0] + 1) / (per_card[c][1] + 2) for c in cards]
+    var = sum(r * (1 - r) / max(per_card[c][1], 1) for r, c in zip(sm, cards)) / len(rates) ** 2
+    se = math.sqrt(var)
+    # 95% interval: Wilson on the pooled rounds (cards get equal rounds)
+    _, lo, hi = wilson(sum(per_card[c][0] for c in cards), n_tot)
     c = CLASSICAL[game]
     out = {
-        "game": game, "rounds": n_tot, "win": w, "lo": max(0.0, w - Z95 * se), "hi": min(1.0, w + Z95 * se),
+        "game": game, "rounds": n_tot, "win": w, "lo": min(lo, w), "hi": max(hi, w),
         "se": se, "classical": c, "quantum": QUANTUM[game], "sigma": (w - c) / se if se > 0 else None,
         "cards": [{"cards": list(cc), "wins": per_card[cc][0], "rounds": per_card[cc][1],
                    "rate": per_card[cc][0] / max(per_card[cc][1], 1)} for cc in cards],

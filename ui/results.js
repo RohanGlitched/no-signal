@@ -103,7 +103,7 @@ export function renderResult(host, game, run) {
     h('span', { class: 'ci', text: `95% interval ${pct(s.lo)} – ${pct(s.hi)} · ${s.rounds.toLocaleString()} rounds` }),
   ]);
   let say = over
-    ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${s.sigma ? s.sigma.toFixed(0) : '—'} standard errors</b>. No team without entanglement could do this.`
+    ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${!s.sigma ? '—' : s.sigma >= 100 ? 'more than 100' : s.sigma.toFixed(0)} standard errors</b>${s.win === 1 ? `, without losing one of ${s.rounds.toLocaleString()} rounds` : ''}. No team without entanglement could do this.`
     : `Not above the classical limit of ${LIMIT_TXT[game]}${run.custom ? ': try other settings' : ''}.`;
   if (game === 'chsh' && s.S !== undefined) say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)}; classical ≤ 2, quantum ≤ 2.828.`;
   if (game === 'ms' && s.covered < 9) say += ` This run asked ${s.covered} of the 9 row and column pairs; IonQ's one-circuit job has room for ${s.covered}.`;
@@ -144,11 +144,12 @@ export function renderAtlas(host, runs, currentLabel) {
     host.append(h('p', { class: 'res-empty', text: 'No recorded runs yet.' }));
     return;
   }
-  const order = { ionq: 0, ibm: 1, ideal: 2 };
-  runs = [...runs].sort((a, b) => (order[a.profile.family] - order[b.profile.family]) || ((b.games.chsh?.win || 0) - (a.games.chsh?.win || 0)));
+  const order = { ionq: 0, ibm: 1, braket: 2, ideal: 3 };
+  const o = (r) => order[r.profile.family] ?? 4;
+  runs = [...runs].sort((a, b) => (o(a) - o(b)) || ((b.games.chsh?.win || 0) - (a.games.chsh?.win || 0)));
   host.append(h('div', { class: 'arow head', role: 'row' }, [h('span', { text: 'Machine' }),
     h('span', { text: 'Telepathy (limit 75%)' }), h('span', { text: 'Three of a kind (75%)' }), h('span', { text: 'Magic square (88.9%)' })]));
-  const fam = { ionq: 'Trapped ions', ibm: 'Superconducting', ideal: 'No noise' };
+  const fam = { ionq: 'Trapped ions', ibm: 'Superconducting', braket: 'Ideal · Amazon Braket', ideal: 'No noise' };
   for (const r of runs) {
     const you = r.profile.label === currentLabel;
     const cells = ['chsh', 'ghz', 'ms'].map((g) => {
