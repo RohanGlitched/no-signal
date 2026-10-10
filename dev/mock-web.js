@@ -2,6 +2,7 @@
 const get = async (f) => (await fetch(f)).text();
 const fn = (impl) => ({ callPromising: impl, callPromisingKwargs: impl });
 const params = new URLSearchParams(location.search);
+const RUN = params.get('run') ? `./run-${params.get('run')}.json` : './run.json';
 export const boot = fn(async () => {
   const b = JSON.parse(await get('./boot.json'));
   try { b.atlas = JSON.parse(await get('../data/atlas.json')); } catch (e) {}
@@ -12,5 +13,5 @@ export const boot = fn(async () => {
 });
 export const play = fn(async () => {
   await new Promise((r) => setTimeout(r, Number(params.get('delay') || 2000)));
-  return await get('./run.json');
+  return await get(RUN);
 });

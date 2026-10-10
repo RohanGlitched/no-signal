@@ -136,7 +136,11 @@ export function renderNoSignal(host, run) {
       ]));
     }
     const a = ns[`${y}0`], b = ns[`${y}1`];
-    if (a && b) card.append(h('p', { class: 'fine', text: `Bob answers 1 in ${pct(a.p_one)} vs ${pct(b.p_one)} of rounds: a gap of ${(Math.abs(a.p_one - b.p_one) * 100).toFixed(1)} points over ${(a.rounds + b.rounds).toLocaleString()} rounds, within what noise and chance allow.` }));
+    if (a && b) {
+      const pm = (a.p_one + b.p_one) / 2;
+      const z = Math.abs(a.p_one - b.p_one) / Math.sqrt(Math.max(pm * (1 - pm), 1e-9) * (1 / a.rounds + 1 / b.rounds));
+      card.append(h('p', { class: 'fine', text: `Bob answers 1 in ${pct(a.p_one)} vs ${pct(b.p_one)} of rounds: a gap of ${(Math.abs(a.p_one - b.p_one) * 100).toFixed(1)} points over ${(a.rounds + b.rounds).toLocaleString()} rounds, ${z.toFixed(1)} standard errors. ${z < 3 ? 'That is the size chance alone gives.' : 'Larger than chance alone usually gives: look for a bias in the machine.'}` }));
+    }
     host.append(card);
   }
 }

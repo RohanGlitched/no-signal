@@ -14,7 +14,7 @@
   .bb{background:#ece8ff;border:3px solid #6b4cf0;color:#6b4cf0}
   .card{width:84px;height:112px;border-radius:12px;background:#fff;border:2px solid #c7cfdb;display:grid;place-items:center;font:800 50px "Bricolage Grotesque";color:#10141d}
   .wall{margin:14px 12px;border-radius:10px;background:repeating-linear-gradient(0deg,#3a404c 0 3px,#8a93a3 3px 5px,#20242c 5px 8px)}
-  .scores{position:absolute;left:96px;right:96px;bottom:84px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .scores{position:absolute;left:96px;right:96px;bottom:70px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
   .s{background:#fff;border:1px solid #dde2ea;border-radius:20px;padding:22px 26px}
   .s .n{font:600 24px "Bricolage Grotesque";color:#4a5466}
   .s .v{font:800 66px/1 "Bricolage Grotesque";color:#0b9b8a;margin-top:8px}
@@ -22,16 +22,18 @@
   .s .g{height:12px;border-radius:6px;background:#e6eaf1;margin-top:12px;position:relative}
   .s .g i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#0b9b8a,#6b4cf0)}
   .s .g b{position:absolute;top:-6px;bottom:-6px;width:3px;background:#d7263d}
+  .meas{position:absolute;left:96px;bottom:292px;font:600 22px Figtree;color:#4a5466}
 </style></head><body>
 <div class="c">
   <div class="k">A Quantum Playground arcade · Qiskit on Qollab</div>
   <h1>No Signal</h1>
   <div class="lede">Three games no team can win without talking: <b>75%</b> is the classical limit. Share entangled qubits on IonQ instead, and win anyway.</div>
   <div class="booths"><div class="b a">Alice<span class="card">1</span></div><div class="wall"></div><div class="b bb">Bob<span class="card">0</span></div></div>
+  <div class="meas">Measured in one 28-qubit job on IonQ Forte Enterprise 1 (noise model)</div>
   <div class="scores">
-    <div class="s"><div class="n">Telepathy · CHSH</div><div class="v">85%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:85%"></i><b style="left:75%"></b></div></div>
-    <div class="s"><div class="n">Three of a kind · GHZ</div><div class="v">100%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:100%"></i><b style="left:75%"></b></div></div>
-    <div class="s"><div class="n">Magic square · Mermin–Peres</div><div class="v">100%</div><div class="l">classical ≤ 88.9%</div><div class="g"><i style="width:100%"></i><b style="left:88.9%"></b></div></div>
+    <div class="s"><div class="n">Telepathy · CHSH</div><div class="v">83.4%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:83.4%"></i><b style="left:75%"></b></div></div>
+    <div class="s"><div class="n">Three of a kind · GHZ</div><div class="v">97.2%</div><div class="l">classical ≤ 75%</div><div class="g"><i style="width:97.2%"></i><b style="left:75%"></b></div></div>
+    <div class="s"><div class="n">Magic square · Mermin–Peres</div><div class="v">97.4%</div><div class="l">classical ≤ 88.9%</div><div class="g"><i style="width:97.4%"></i><b style="left:88.9%"></b></div></div>
   </div>
 </div>
 </body></html>

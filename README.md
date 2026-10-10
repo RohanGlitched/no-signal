@@ -1,6 +1,13 @@
+<p align="center"><img src="docs/cover.png" alt="No Signal: three games no team can win without talking, won with entangled qubits on IonQ" width="100%"></p>
+
 # No Signal
 
+**[Play it on Qollab](https://qollab.xyz/u/master/no-signal)** · **[How it works](#one-job-every-game)** · **[Results](#results)** · MIT
+
+
 **Three games no team can win without talking, unless the players share entangled qubits.** Pick a machine in Qollab's runner, tune the players' strategies, and beat the classical limit on IonQ's trapped-ion noise models, IBM's superconducting noise models or an ideal simulator.
+
+**On IonQ Forte Enterprise 1 (noise model), in one 28-qubit job:** Telepathy 83.4% (S = 2.67, 14 standard errors above the classical 75%), Three of a kind 97.2% (classical 75%), magic square 97.4% (classical 8 in 9). Fourteen machines are recorded in the [results](#results), and in every run Bob's answers stay within 3 standard errors of each other whatever card Alice holds.
 
 This effort is supported by Qollab & IonQ.
 
@@ -71,6 +78,8 @@ Recorded with the best strategies on Qollab's machines (see the page's atlas):
 
 | Machine | Telepathy (75%) | S (≤ 2 classical) | Three of a kind (75%) | Magic square (88.9%) |
 |---|---|---|---|---|
+| IonQ Forte Enterprise 1 noise model | 83.4% (14 SE) | 2.67 ± 0.05 | 97.2% (83 SE) | 97.4% (24 SE) (2 of 9 pairs) |
+| IonQ Forte 1 noise model | 84.1% (16 SE) | 2.73 ± 0.05 | 98.2% (>100 SE) | 97.8% (27 SE) (2 of 9 pairs) |
 | IBM Aachen noise model | 83.6% (15 SE) | 2.69 ± 0.05 | 97.4% (87 SE) | 97.3% (49 SE) |
 | IBM Berlin noise model | 83.6% (15 SE) | 2.69 ± 0.05 | 95.4% (61 SE) | 95.5% (30 SE) |
 | IBM Boston noise model | 85.8% (19 SE) | 2.86 ± 0.04 | 97.6% (92 SE) | 98.2% (66 SE) |

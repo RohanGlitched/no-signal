@@ -113,7 +113,7 @@ async function play(shotsOverride) {
   setStatus(p.hardware
     ? 'Real hardware: the job waits in IonQ’s queue, which can take minutes to hours. Keep this tab open.'
     : p.family === 'ionq'
-      ? `Sending one ${p.cap}-qubit circuit with every game in it to ${p.label.replace(' noise model', '')}. IonQ simulates every shot: allow a minute or two.`
+      ? `Sending one circuit of up to ${p.cap} qubits, with every game in it, to ${p.label.replace(' noise model', '')}. IonQ simulates every shot: allow a minute or two.`
       : `Running every card set of all three games${p.family === 'ibm' ? ' on the IBM noise model in your browser' : ''}.`);
   console.log(`Playing on ${p.label}…`);
   try {
