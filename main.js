@@ -160,7 +160,7 @@ async function play(shotsOverride, optsOverride) {
       .filter(([k]) => res.games[k]).map(([k, n]) => `${n} ${(res.games[k].win * 100).toFixed(1)}%`);
     setStatus(`Done in ${secs} s. ${parts.join(', ')}. Saved in the console as a JSON file.`, 'done');
     console.log(`Played in ${secs} s on ${p.label}: ` + Object.entries(g).map(([k, v]) => `${k} ${(v.win * 100).toFixed(1)}% of ${v.rounds}`).join(', '));
-    document.getElementById('g-chsh').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(res.games.chsh ? 'chsh-result' : 'ms-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     console.error(err);
     const text = String(err && err.message ? err.message : err);
