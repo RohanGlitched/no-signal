@@ -1,6 +1,7 @@
 // Classical sandboxes: pick answers in advance and see the bound bite.
 
-const pct = (v) => `${Math.round(v * 1000) / 10}%`;
+// exact values (75%, 100%) without decimals; measured ones always with one
+const pct = (v) => (Math.abs(v * 100 - Math.round(v * 100)) < 1e-9 ? `${Math.round(v * 100)}%` : `${(v * 100).toFixed(1)}%`);
 const h = (tag, attrs = {}, kids = []) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {

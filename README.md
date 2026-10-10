@@ -53,15 +53,33 @@ Every shot plays every group, so each card set gets the same number of rounds. L
 - **Bell parameter (Telepathy):** S = E₀₀ + E₀₁ + E₁₀ − E₁₁ = 8·win − 4. Classical teams reach at most 2; quantum mechanics allows up to 2√2.
 - **No signalling:** from the same shots, Bob's answer rate for each of his cards is compared across Alice's two cards. Entanglement correlates the answers but carries no message.
 
+## How much noise can entanglement take?
+
+Noise washes the shared state toward random bits. The page models it with one number, the visibility v: each Bell pair becomes v·|Φ⁺⟩⟨Φ⁺| + (1 − v)·I/4, and the GHZ state likewise with I/8. Then:
+
+| Game | Best quantum win rate at visibility v | Falls to the classical limit at |
+|---|---|---|
+| Three of a kind | ½ + v/2 | v = 50% |
+| Telepathy | ½ + (cos²(π/8) − ½)·v | v = 1/√2 ≈ 71% |
+| Magic square | (4(1 + v) + 5(1 + v²))/18 | v ≈ 85% |
+
+The magic square is the most fragile. Four of its nine cells depend on one Bell pair and five on both, so noise hits it twice. A slider on the page drags v down and shows the three games falling to their limits in turn. Each recorded machine sits on each game's curve at its measured win rate. Real noise is not all depolarizing, so this is a picture, not a fit. The tests check all three curves against Qiskit Aer, with a depolarizing channel inserted right after state preparation.
+
 ## Results
 
 Recorded with the best strategies on Qollab's machines (see the page's atlas):
 
 | Machine | Telepathy (75%) | S (≤ 2 classical) | Three of a kind (75%) | Magic square (88.9%) |
 |---|---|---|---|---|
-| *ideal* | 85.4% | 2.83 | 100% | 100% |
-
-*The atlas fills in as runs are recorded.*
+| IBM Aachen noise model | 83.6% (15 SE) | 2.69 ± 0.05 | 97.4% (87 SE) | 97.3% (49 SE) |
+| IBM Boston noise model | 85.8% (19 SE) | 2.86 ± 0.04 | 97.6% (92 SE) | 98.2% (66 SE) |
+| IBM Fez noise model | 84.6% (17 SE) | 2.77 ± 0.04 | 98.4% (>100 SE) | 98.0% (61 SE) |
+| IBM Kingston noise model | 83.9% (15 SE) | 2.71 ± 0.05 | 97.1% (82 SE) | 96.7% (41 SE) |
+| IBM Marrakesh noise model | 85.0% (18 SE) | 2.80 ± 0.04 | 98.6% (>100 SE) | 98.4% (71 SE) |
+| IBM Miami noise model | 83.7% (15 SE) | 2.69 ± 0.05 | 94.3% (52 SE) | 94.9% (26 SE) |
+| IBM Pittsburgh noise model | 84.9% (17 SE) | 2.79 ± 0.04 | 97.8% (96 SE) | 97.6% (53 SE) |
+| Built-in simulator | 85.2% (18 SE) | 2.82 ± 0.04 | 100.0% | 100.0% |
+| *ideal (theory)* | 85.4% | 2.83 | 100% | 100% |
 
 ## What this shows, and what it doesn't
 

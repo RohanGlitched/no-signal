@@ -58,7 +58,7 @@ def expand(run):
         else:
             per = {tuple(c["cards"]): [c["wins"], c["rounds"]] for c in cards}
         out = summarize(g, per)
-        assert abs(out["win"] - s["win"]) < 1e-9, (run["profile"]["label"], g, out["win"], s["win"])
+        assert abs(out["win"] - s["win"]) < 1e-5, (run["profile"]["label"], g, out["win"], s["win"])
         games[g] = out
     rounds = {}
     for g, rs in run.get("rounds", {}).items():

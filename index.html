@@ -120,6 +120,17 @@
     <div class="nosig" id="nosig"></div>
   </section>
 
+  <!-- -------------------------------------------------------- noise budget -->
+  <section class="game" id="g-noise" aria-labelledby="noise-h">
+    <div class="game-head">
+      <p class="level">Noise</p>
+      <h2 id="noise-h">How much noise can entanglement take?</h2>
+      <p class="rule">Noise washes the shared state toward random bits. Drag the visibility down and watch each game fall to its classical limit at a different point: Three of a kind holds on down to 50% visibility, Telepathy needs 71%, and the magic square, which spends two Bell pairs on every cell it shares, needs 85%. The diamonds are the recorded machines, each placed on a game's curve at its measured win rate.</p>
+    </div>
+    <div class="noise" id="noise"></div>
+    <p class="nb-note">Model: each Bell pair becomes v·|Φ⁺⟩⟨Φ⁺| + (1 − v)·I/4, and the GHZ state likewise with I/8. Telepathy then wins ½ + (cos²(π/8) − ½)·v and Three of a kind ½ + v/2. In the square, four cells depend on one pair and five on both, so it wins (4(1 + v) + 5(1 + v²))/18. The tests check these curves against Qiskit Aer.</p>
+  </section>
+
   <!-- -------------------------------------------------------------- atlas -->
   <section class="game" id="g-atlas" aria-labelledby="atlas-h">
     <div class="game-head">

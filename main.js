@@ -4,6 +4,7 @@ import * as web from 'nosig.web';
 import { chshSandbox, ghzSandbox, magicGrid } from './ui/sandbox.js';
 import { chshDials, ghzBases, pauliSquare } from './ui/controls.js';
 import { renderBoards, renderResult, renderNoSignal, renderAtlas, staticWall } from './ui/results.js';
+import { noiseBudget } from './ui/noise.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -87,6 +88,7 @@ function renderAll() {
     runs.unshift(state.run);
   }
   renderAtlas($('atlas'), runs, state.info.profile.label);
+  noiseBudget($('noise'), runs);
   const hit = state.run && state.run.games && state.run.games.ms && state.run.games.ms.cards[0];
   pauliSquare($('ms-pauli'), hit ? hit.cards : null);
 }

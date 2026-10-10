@@ -105,7 +105,10 @@ export function renderResult(host, game, run) {
   let say = over
     ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${!s.sigma ? '—' : s.sigma >= 100 ? 'more than 100' : s.sigma.toFixed(0)} standard errors</b>${s.win === 1 ? `, without losing one of ${s.rounds.toLocaleString()} rounds` : ''}. No team without entanglement could do this.`
     : `Not above the classical limit of ${LIMIT_TXT[game]}${run.custom ? ': try other settings' : ''}.`;
-  if (game === 'chsh' && s.S !== undefined) say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)}; classical ≤ 2, quantum ≤ 2.828.`;
+  if (game === 'chsh' && s.S !== undefined) {
+    say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)}; classical ≤ 2, quantum ≤ 2.828.`;
+    if (s.S > 2 * Math.SQRT2 && s.S - 1.96 * s.S_se <= 2 * Math.SQRT2) say += ' Above 2.828 only by chance: the bound lies inside the error bar, as it should with a finite number of rounds.';
+  }
   if (game === 'ms' && s.covered < 9) say += ` This run asked ${s.covered} of the 9 row and column pairs; IonQ's one-circuit job has room for ${s.covered}.`;
   big.append(h('p', { class: 'say', html: say }));
   const chart = h('div', { class: 'res-chart' }, [cardBars(game, s)]);

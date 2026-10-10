@@ -87,3 +87,36 @@ def test_play_end_to_end_and_no_signal():
     for v in out["nosignal"].values():
         assert abs(v["p_one"] - 0.5) < 0.06
     assert out["rounds"]["chsh"] and out["games"]["ms"]["covered"] == 9
+
+
+@pytest.mark.parametrize("v", [0.9, 0.75])
+def test_noise_budget_curves(v):
+    """The page's visibility model: depolarize each prepared state to visibility v
+    and compare the win rates with the curves drawn in ui/noise.js."""
+    from qiskit import QuantumCircuit
+    from qiskit_aer.noise import depolarizing_error
+    from nosig.games import Group, add_chsh, add_ghz, add_ms
+    sim = AerSimulator(seed_simulator=11)
+
+    def noisy(n, add, cards, prep, chans, game, extra):
+        qc = QuantumCircuit(n, n)
+        add(qc, list(range(n)), cards, *extra)
+        data = list(qc.data)
+        qc.data.clear()
+        for k, inst in enumerate(data):
+            qc.append(inst)
+            if k == prep - 1:
+                for qs in chans:
+                    qc.append(depolarizing_error(1 - v, len(qs)).to_instruction(), qs)
+        qc.measure(range(n), range(n))
+        counts = sim.run(qc, shots=20000).result().get_counts()
+        g = Group(game, tuple(cards), list(range(n)))
+        return sum(c * score(g, bits_of(k, n))[1] for k, c in counts.items()) / 20000
+
+    q = math.cos(math.pi / 8) ** 2
+    chsh = sum(noisy(2, add_chsh, c, 2, [[0, 1]], "chsh", (BEST_ANGLES,)) for c in CHSH_CARDS) / 4
+    ghz = sum(noisy(3, add_ghz, c, 3, [[0, 1, 2]], "ghz", (BEST_GHZ,)) for c in GHZ_CARDS) / 4
+    ms = sum(noisy(4, add_ms, c, 4, [[0, 2], [1, 3]], "ms", ()) for c in MS_CARDS) / 9
+    assert abs(chsh - (0.5 + (q - 0.5) * v)) < 0.008, chsh
+    assert abs(ghz - (0.5 + 0.5 * v)) < 0.008, ghz
+    assert abs(ms - (4 * (1 + v) + 5 * (1 + v * v)) / 18) < 0.008, ms
