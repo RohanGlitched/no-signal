@@ -108,11 +108,11 @@ SE: standard errors above the classical limit. S is shown with its 95% interval.
 
 ```
 index.html, main.css, main.js   the page (Qollab JS project)
-ui/                              sandboxes, angle dials and bases, results, race, atlas, the static wall
+ui/                              Your turn game, sandboxes, angle dials and bases, results, race, noise budget, atlas
 nosig/games.py                   the three games as circuits, scoring rules and brute-force classical bounds
 nosig/play.py                    one job on the chosen machine; win rates, S, significance, the no-signal check
 nosig/web.py                     what the page calls
-data/atlas.json                  runs recorded on Qollab's machines
+data/atlas.json                  runs recorded on Qollab's machines (data/runs/*.json, merged by tools/atlas.py)
 tests/                           checks against Qiskit Aer
 ```
 
