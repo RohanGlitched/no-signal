@@ -72,13 +72,15 @@ Recorded with the best strategies on Qollab's machines (see the page's atlas):
 | Machine | Telepathy (75%) | S (≤ 2 classical) | Three of a kind (75%) | Magic square (88.9%) |
 |---|---|---|---|---|
 | IBM Aachen noise model | 83.6% (15 SE) | 2.69 ± 0.05 | 97.4% (87 SE) | 97.3% (49 SE) |
+| IBM Berlin noise model | 83.6% (15 SE) | 2.69 ± 0.05 | 95.4% (61 SE) | 95.5% (30 SE) |
 | IBM Boston noise model | 85.8% (19 SE) | 2.86 ± 0.04 | 97.6% (92 SE) | 98.2% (66 SE) |
 | IBM Fez noise model | 84.6% (17 SE) | 2.77 ± 0.04 | 98.4% (>100 SE) | 98.0% (61 SE) |
 | IBM Kingston noise model | 83.9% (15 SE) | 2.71 ± 0.05 | 97.1% (82 SE) | 96.7% (41 SE) |
 | IBM Marrakesh noise model | 85.0% (18 SE) | 2.80 ± 0.04 | 98.6% (>100 SE) | 98.4% (71 SE) |
 | IBM Miami noise model | 83.7% (15 SE) | 2.69 ± 0.05 | 94.3% (52 SE) | 94.9% (26 SE) |
 | IBM Pittsburgh noise model | 84.9% (17 SE) | 2.79 ± 0.04 | 97.8% (96 SE) | 97.6% (53 SE) |
-| Built-in simulator | 85.2% (18 SE) | 2.82 ± 0.04 | 100.0% | 100.0% |
+| AWS Braket local simulator | 85.6% (19 SE) | 2.85 ± 0.04 | 100.0% | 100.0% |
+| Built-in simulator | 85.0% (18 SE) | 2.80 ± 0.04 | 100.0% | 100.0% |
 | *ideal (theory)* | 85.4% | 2.83 | 100% | 100% |
 
 ## What this shows, and what it doesn't
