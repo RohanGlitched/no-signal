@@ -30,7 +30,7 @@ for r in atlas["runs"]:
                 if c else f'| {r["profile"]["label"]} | — | — | {cell(g.get("ghz"))} | {ms} |')
 rows.append("| *ideal (theory)* | 85.4% | 2.83 | 100% | 100% |")
 rows.append("")
-rows.append("SE: standard errors above the classical limit c, using the spread a team winning exactly c would show, √(c(1−c)/n) over n rounds. S is shown with its 95% interval. On the IonQ Forte models the magic square pools two jobs, so it covers all nine row and column pairs. Aria's 21 qubits leave no room for the square beside the other games.")
+rows.append("SE: standard errors above the classical limit c, using the spread a team winning exactly c would show, √(c(1−c)/n) over n rounds. S is shown with its 95% interval. On the IonQ Forte models the magic square pools two jobs, so it covers all nine row and column pairs. The Aria models are capped at 21 qubits here, which leaves no room for the square beside the other games. The demo video quotes the margins as they were first computed, from the observed rate (14 standard errors for Telepathy); the stricter null-rate spread above gives 12.")
 table = "\n".join(rows)
 p = os.path.join(root, "README.md")
 s = open(p, encoding="utf-8").read()

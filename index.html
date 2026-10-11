@@ -158,7 +158,7 @@
   <section class="how" aria-labelledby="how-h">
     <h2 id="how-h">How it works</h2>
     <ol class="steps">
-      <li><h3>One job, every game</h3><p>IonQ's runners take one job of one circuit, so the lab packs the games side by side: 4 Bell pairs for Telepathy, 4 GHZ states for Three of a kind and two magic-square rounds: a 28-qubit circuit, which IonQ's transpiler lays out across all 29 qubits of a Forte. Local simulators run every card set as its own small circuit.</p></li>
+      <li><h3>One job, every game</h3><p>IonQ's runners take one job of one circuit, so the lab packs the games side by side: 4 Bell pairs for Telepathy, 4 GHZ states for Three of a kind and two magic-square rounds: a 28-qubit circuit, placed on the 29-qubit Forte noise model with one qubit idle. Local simulators run every card set as its own small circuit.</p></li>
       <li><h3>Cards are fixed per group</h3><p>Each group of qubits is wired to one set of cards, and every shot plays all of them, so each card set gets the same number of rounds. The win rate is the average over card sets, as if the referee picked them at random.</p></li>
       <li><h3>Scoring</h3><p>For Telepathy, the Bell parameter S = E₀₀ + E₀₁ + E₁₀ − E₁₁ equals 8 × win − 4: classical teams stay at or below 2, quantum mechanics allows up to 2√2 ≈ 2.83. The margin over the classical bound is reported in standard errors.</p></li>
       <li><h3>Classical baselines</h3><p>The classical bounds are checked by brute force over every deterministic strategy: 16 for Telepathy, 64 for Three of a kind, 4,096 grid pairs for the magic square. The race replays the same cards against a best classical strategy.</p></li>

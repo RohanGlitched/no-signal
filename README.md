@@ -6,7 +6,7 @@
 
 **Three games no team can win without talking, unless the players share entangled qubits.** Pick a machine in Qollab's runner, tune the players' strategies, and beat the classical limit on IonQ's trapped-ion noise models, IBM's superconducting noise models or an ideal simulator. Then drag the noise up and watch the games fall back to their classical limits, one at a time, in the order the theory predicts.
 
-**On IonQ Forte Enterprise 1 (noise model):** one 28-qubit job gave Telepathy 83.4% (S = 2.67 ± 0.09, 12 standard errors above the classical 75%) and Three of a kind 97.2% (classical 75%). The magic square, over all nine row and column pairs (two jobs), won 96.9% against a classical 8 in 9. Fourteen machines are recorded in the [results](#results).
+**On IonQ Forte Enterprise 1 (noise model):** one 28-qubit job gave Telepathy 83.4% (S = 2.67 ± 0.09 at 95%, 12 standard errors above the classical 75%) and Three of a kind 97.2% (classical 75%). The magic square, over all nine row and column pairs (two jobs), won 96.9% against a classical 8 in 9. Fourteen machines are recorded in the [results](#results).
 
 This effort is supported by Qollab & IonQ.
 
@@ -21,7 +21,7 @@ This effort is supported by Qollab & IonQ.
 - **Your turn.** Twenty rounds as Alice against a fixed plan with Bob. You see only your own card. The quantum team plays the same deals from real recorded rounds and usually wins more.
 - **The sandboxes.** Flip the players' answers for every card. No table of answers beats 75%, 75% and 8 in 9; the page brute-forces every strategy to prove it.
 - **Press Play all three games.** One job plays every game on the machine you picked. Each scoreboard shows the win rate, its 95% interval and how many standard errors it sits above the classical wall.
-- **The noise slider.** On a local simulator it changes the next run: the shared states are mixed with noise at the visibility you set, and the measured points land on the predicted curves. The magic square falls first, Telepathy second, Three of a kind last.
+- **The noise slider.** On a local simulator it changes the next run: the shared states are mixed with noise at the visibility you set, and the measured points land on the predicted curves (on the ideal simulators exactly; on an IBM model a little lower, by that machine's own noise). The magic square falls first, Telepathy second, Three of a kind last.
 
 ## What you will learn
 
@@ -41,7 +41,7 @@ In every game a referee hands each player a card. The players can't talk. They w
 | **Three of a kind** (GHZ) | 3 | the cards always hold an even number of 1s; the number of 1s answered must be even if all cards are 0, odd otherwise | 75% | 100% |
 | **Magic square** (Mermin–Peres) | 2 | Alice fills her row (even 1s), Bob his column (odd 1s); they must agree where they cross | 8 in 9 | 100% |
 
-Each classical limit holds for every strategy, including shared random coins, which only pick between strategies. The lab checks this by brute force: 16 strategies for Telepathy, 64 for Three of a kind, and 4,096 grid pairs for the square.
+Each classical limit holds for every strategy, including shared random coins, which only pick between strategies. The page checks this by brute force, at the press of a button: 16 strategies for Telepathy, 64 for Three of a kind, and 4,096 grid pairs for the square; the tests do the same.
 
 ## How to play
 
@@ -62,12 +62,12 @@ Each classical limit holds for every strategy, including shared random coins, wh
 
 ## One job, every game
 
-IonQ's runners on Qollab accept one job of one circuit, so No Signal packs the games side by side in one circuit. On a 29-qubit Forte noise model that is 28 logical qubits, laid out across the machine's 29 after transpiling:
+IonQ's runners on Qollab accept one job of one circuit, so No Signal packs the games side by side in one circuit. On a 29-qubit Forte noise model that is a 28-qubit circuit, placed on the simulator's 29 qubits with one idle:
 - four Bell pairs for Telepathy, one per card pair (8 qubits);
 - four GHZ states for Three of a kind (12 qubits);
 - two magic-square rounds of two Bell pairs each (8 qubits).
 
-Every shot plays every group, so each card set gets the same number of rounds. Local simulators run each card set as its own small circuit and cover all nine magic-square pairs. IonQ's Aria models have 25 qubits; the lab caps them at 21, because full-width jobs stalled on their remote simulator, which leaves no room for the square beside the other games.
+Every shot plays every group, so each card set gets the same number of rounds. Local simulators run each card set as its own small circuit and cover all nine magic-square pairs. Aria hardware has 25 qubits; on Qollab its noise models run on IonQ's 29-qubit simulator, and the lab caps them at 21 because full-width jobs stalled there, which leaves no room for the square beside the other games.
 
 **How each player measures:**
 - **Telepathy:** each player measures their half of $|\Phi^+\rangle$ along an angle, via $RY(-2\theta)$ and then Z. The answers match with probability $\cos^2(\theta_A - \theta_B)$.
@@ -94,7 +94,7 @@ Noise washes the shared state toward random bits. The page models it with one nu
 | Telepathy | $\tfrac12 + \left(\cos^2\tfrac{\pi}{8} - \tfrac12\right)v$ | v = 1/√2 ≈ 71% |
 | Magic square | $\dfrac{4(1 + v) + 5(1 + v^2)}{18}$ | v ≈ 85% |
 
-The magic square is the most fragile. Four of its nine cells depend on one Bell pair and five on both, so noise hits it twice. A slider on the page drags v down and shows the three games falling to their limits in turn, and on a local simulator it drives the next run, so the curves can be checked against measurements at any v. Each recorded machine is placed at the visibility its Telepathy score implies (clamped at 1 where a score lands above Tsirelson's bound by chance), which turns the other two curves into predictions the measurements can miss. The implied visibility carries about ±1.6 points of shot noise from Telepathy's 4,000 rounds, so a GHZ prediction carries about ±0.8. On the IonQ Forte models the GHZ prediction lands within 0.1 points of the measurement; on the Aria models it misses by 1.0 and 1.7 points; on IBM's models GHZ falls 0.2 to 3.3 points below it, since a GHZ state needs two entangling gates where a Bell pair needs one. The tests check all three curves against Qiskit Aer, with the mixture prepared the way the page prepares it.
+The magic square is the most fragile. Four of its nine cells depend on one Bell pair and five on both, so noise hits it twice. A slider on the page drags v down and shows the three games falling to their limits in turn, and on a local simulator it drives the next run, so the curves can be checked against measurements at any v. Each recorded machine is placed at the visibility its Telepathy score implies (clamped at 1 where a score lands above Tsirelson's bound by chance), which turns the other two curves into predictions the measurements can miss. The implied visibility carries about ±1.6 points of shot noise from Telepathy's 4,000 rounds, so a GHZ prediction carries about ±0.8. On the IonQ Forte models the GHZ prediction lands within 0.1 points of the measurement; on the Aria models it misses by 1.0 and 1.4 points; on IBM's models GHZ falls 0.2 to 3.3 points below it, since a GHZ state needs two entangling gates where a Bell pair needs one. The tests check all three curves against Qiskit Aer, with the mixture prepared the way the page prepares it.
 
 ## Results
 
@@ -122,7 +122,7 @@ SE: standard errors above the classical limit c, using the spread a team winning
 
 ## Why this is more than the textbook CHSH game
 
-The CHSH game is a standard first lesson in entanglement. What is new here: three nonlocal games packed into one IonQ job so every shot plays every game; the classical limits proved on the page by brute force rather than quoted; a visibility model that turns one game's score into a prediction for the other two, checked on fourteen machines and on Aer; a noise slider that drives real runs, not just a curve; playing as Alice against rounds a real machine produced; and a magic square completed across two jobs when a machine cannot hold all nine pairs at once.
+The CHSH game is a standard first lesson in entanglement. What is new here: three nonlocal games packed into one IonQ job so every shot plays every game; the classical limits proved on the page by brute force rather than quoted; a visibility model that turns one game's score into a prediction for the other two, checked on twelve noise models and on Aer; a noise slider that drives real runs, not just a curve; playing as Alice against rounds a real machine produced; and a magic square completed across two jobs when a machine cannot hold all nine pairs at once.
 
 ## Glossary
 

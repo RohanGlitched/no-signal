@@ -222,7 +222,8 @@ async function play(shotsOverride, optsOverride) {
     } else state.run = res;
     // one circuit cannot ask all nine pairs: pool card by card with the two
     // the recorded main job on this machine asked
-    const ms = res.games.ms, rec = p.one_circuit && ms && ms.covered < 9 ? recordedMain() : null;
+    // only a square-only job pools; a full run keeps its own two pairs and says so
+    const ms = res.games.ms, rec = p.one_circuit && res.only && ms && ms.covered < 9 ? recordedMain() : null;
     if (rec) {
       try {
         const pooled = JSON.parse(await web.pool.callPromising('ms', JSON.stringify(rec.ms_main), JSON.stringify(ms.cards)));

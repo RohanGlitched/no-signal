@@ -89,14 +89,32 @@ export function ghzSandbox(host) {
         h('span', { text: `answers ${ans.join('')} · ${win ? 'win' : 'lose'}` }),
       ]));
     }
-    total.innerHTML = `<span class="big">${pct(wins / 4)}</span><span class="note">of rounds won. Every one of the 64 strategies tops out at 75%.</span>`;
+    total.innerHTML = `<span class="big">${pct(wins / 4)}</span><span class="note">of rounds won. Every one of the 64 strategies tops out at 75%; press the button to see them all.</span>`;
   };
   const rows = names.map((n, p) => h('div', { class: 'prow' }, [
     h('span', { class: `pname ${cls[p]}`, text: n }),
     toggle(n, 0, () => s[p][0], () => { s[p][0] ^= 1; }, render),
     toggle(n, 1, () => s[p][1], () => { s[p][1] ^= 1; }, render),
   ]));
-  host.append(h('div', { class: 'players' }, rows), out, total);
+  const strats = h('div', { class: 'strats', hidden: true, 'aria-live': 'polite' });
+  const all = h('button', { type: 'button', class: 'ghost allbtn', text: 'Try all 64 strategies',
+    onclick: () => {
+      strats.hidden = false;
+      strats.innerHTML = '';
+      let best = 0;
+      for (let k = 0; k < 64; k++) {
+        const t = [[k >> 5 & 1, k >> 4 & 1], [k >> 3 & 1, k >> 2 & 1], [k >> 1 & 1, k & 1]];
+        let w = 0;
+        for (const cards of GHZ) {
+          const ans = cards.map((c, p) => t[p][c]);
+          w += ((ans[0] ^ ans[1] ^ ans[2]) === (cards[0] | cards[1] | cards[2]));
+        }
+        best = Math.max(best, w);
+        strats.append(h('span', { class: w === 3 ? 'max' : '', title: `Alice ${t[0].join('')}, Bob ${t[1].join('')}, Carol ${t[2].join('')}`, text: pct(w / 4) }));
+      }
+      strats.prepend(h('span', { class: 'note', text: `Best of 64: ${pct(best / 4)}. ` }));
+    } });
+  host.append(h('div', { class: 'players' }, rows), out, total, all, strats);
   render();
 }
 
@@ -105,6 +123,33 @@ export function magicGrid(host) {
   const g = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const wrap = h('div', { class: 'msq' });
   const verdict = h('div', { class: 'sbx-total' });
+  // every legal Alice table (three even rows) against every legal Bob table
+  // (three odd columns): 64 x 64 pairs, scored on how many of the 9 crossings agree
+  const allGrids = h('button', { type: 'button', class: 'ghost allbtn', text: 'Try all 4,096 grid pairs',
+    onclick: () => {
+      const even = [], odd = [];
+      for (let v = 0; v < 8; v++) {
+        const bits = [v >> 2 & 1, v >> 1 & 1, v & 1];
+        ((bits[0] + bits[1] + bits[2]) % 2 === 0 ? even : odd).push(bits);
+      }
+      const tables = (opts) => { const out = []; for (const x of opts) for (const y of opts) for (const z of opts) out.push([x, y, z]); return out; };
+      const alices = tables(even), bobs = tables(odd);
+      const hist = new Map();
+      let best = 0;
+      for (const A of alices) {
+        for (const B of bobs) {
+          let agree = 0;
+          for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) agree += (A[r][c] === B[c][r]);
+          hist.set(agree, (hist.get(agree) || 0) + 1);
+          best = Math.max(best, agree);
+        }
+      }
+      const n = alices.length * bobs.length;
+      const parts = [...hist.entries()].sort((x, y) => y[0] - x[0]).map(([k, v]) => `${v.toLocaleString()} pairs agree on ${k} of 9`);
+      gridOut.textContent = `${n.toLocaleString()} grid pairs tried. Best: ${best} of 9 crossings, so the best classical team wins ${pct(best / 9)} of rounds, never all nine. ${parts.join('; ')}.`;
+      gridOut.hidden = false;
+    } });
+  const gridOut = h('p', { class: 'note', hidden: true, 'aria-live': 'polite' });
   // built once and updated in place, so a click keeps keyboard focus on its square
   const cells = [], rowTags = [], colTags = [];
   wrap.append(h('span'));
@@ -147,6 +192,6 @@ export function magicGrid(host) {
     const ones = g.flat().reduce((a, b) => a + b, 0);
     verdict.innerHTML = `<span class="big">${rowsOk + colsOk} of 6</span><span class="note">rules met. The grid holds ${ones} ones: rows want an even total, columns an odd one, so at most 5 of the 6 can hold. Wherever a rule breaks, the squares on it can lose.</span>`;
   };
-  host.append(wrap, verdict);
+  host.append(wrap, verdict, allGrids, gridOut);
   render();
 }
