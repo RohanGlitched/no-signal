@@ -1,1 +1,1 @@
-networkx
+# Nothing to add: Qollab always installs Qiskit, and NumPy comes with Pyodide.

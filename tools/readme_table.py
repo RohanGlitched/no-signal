@@ -13,7 +13,7 @@ def cell(s, sig=True):
     if not s:
         return "—"
     out = f'{s["win"] * 100:.1f}%'
-    if sig and s["win"] < 1:
+    if sig and s.get("sigma") is not None:
         out += f' ({s["sigma"]:.0f} SE)' if s["sigma"] < 100 else " (>100 SE)"
     return out
 
@@ -30,7 +30,7 @@ for r in atlas["runs"]:
                 if c else f'| {r["profile"]["label"]} | — | — | {cell(g.get("ghz"))} | {ms} |')
 rows.append("| *ideal (theory)* | 85.4% | 2.83 | 100% | 100% |")
 rows.append("")
-rows.append("SE: standard errors above the classical limit. S is shown with its 95% interval. On the IonQ Forte models the magic square pools two jobs, so it covers all nine row and column pairs. Aria's 21 qubits leave no room for the square beside the other games.")
+rows.append("SE: standard errors above the classical limit c, using the spread a team winning exactly c would show, √(c(1−c)/n) over n rounds. S is shown with its 95% interval. On the IonQ Forte models the magic square pools two jobs, so it covers all nine row and column pairs. Aria's 21 qubits leave no room for the square beside the other games.")
 table = "\n".join(rows)
 p = os.path.join(root, "README.md")
 s = open(p, encoding="utf-8").read()

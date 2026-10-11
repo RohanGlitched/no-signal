@@ -120,3 +120,31 @@ def test_noise_budget_curves(v):
     assert abs(chsh - (0.5 + (q - 0.5) * v)) < 0.008, chsh
     assert abs(ghz - (0.5 + 0.5 * v)) < 0.008, ghz
     assert abs(ms - (4 * (1 + v) + 5 * (1 + v * v)) / 18) < 0.008, ms
+
+
+def test_null_se_margin_and_pooling():
+    """The margin uses the classical limit's own spread, and web.pool joins a
+    square-only job to the main job's two pairs card by card."""
+    s = play.summarize("chsh", {c: [850, 1000] for c in CHSH_CARDS})
+    assert abs(s["sigma"] - (0.85 - 0.75) / math.sqrt(0.75 * 0.25 / 4000)) < 1e-9
+    main = [{"cards": [0, 2], "wins": 959, "rounds": 1000}, {"cards": [1, 1], "wins": 989, "rounds": 1000}]
+    rest = [{"cards": list(c), "wins": 950, "rounds": 1000} for c in MS_CARDS if c not in ((0, 2), (1, 1))]
+    out = json.loads(web.pool("ms", json.dumps(main), json.dumps(rest)))
+    assert out["covered"] == 9 and out["rounds"] == 9000
+    assert abs(out["win"] - (959 + 989 + 7 * 950) / 9000) < 1e-12
+
+
+@pytest.mark.parametrize("v", [0.8, 0.6])
+def test_visibility_mixture_follows_the_curves(v):
+    """Play at a set visibility on a local simulator: each card set becomes
+    the clean preparation plus its bit-flipped versions with proportional
+    shots, which is the noise figure's Werner state. The pooled win rates
+    must land on the curves drawn in ui/noise.js, within shot noise."""
+    out = json.loads(web.play(AerSimulator(seed_simulator=7), shots=4000, options_json=json.dumps({"visibility": v})))
+    assert out["ok"] and out["visibility"] == v and out["circuits"] > 17
+    g = out["games"]
+    q = math.cos(math.pi / 8) ** 2
+    assert all(s["rounds"] == 4000 * s["covered"] for s in g.values())
+    assert abs(g["chsh"]["win"] - (0.5 + (q - 0.5) * v)) < 0.016, g["chsh"]["win"]
+    assert abs(g["ghz"]["win"] - (0.5 + 0.5 * v)) < 0.016, g["ghz"]["win"]
+    assert abs(g["ms"]["win"] - (4 * (1 + v) + 5 * (1 + v * v)) / 18) < 0.012, g["ms"]["win"]

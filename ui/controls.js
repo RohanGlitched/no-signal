@@ -20,14 +20,16 @@ function polar(svg, color, angle) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   el('circle', { cx: c, cy: c, r: 70, fill: 'none', stroke: 'var(--line-2)', 'stroke-width': 1.5 }, svg);
   el('line', { x1: c, y1: 14, x2: c, y2: w - 14, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, svg);
-  el('text', { x: c + 6, y: 16, text: '|0⟩' }, svg);
-  el('text', { x: c + 6, y: w - 6, text: '|1⟩' }, svg);
+  // font sizes in viewBox units: the dial draws at about 128 px for 180 units,
+  // so 17 units stays at 12 px or more on screen
+  el('text', { x: c + 6, y: 18, text: '|0⟩', 'font-size': 17, fill: 'var(--ink-2)' }, svg);
+  el('text', { x: c + 6, y: w - 6, text: '|1⟩', 'font-size': 17, fill: 'var(--ink-2)' }, svg);
   // a qubit direction at angle t sits at 2t on the Bloch circle
   const t = (2 * angle * Math.PI) / 180;
   const x = c + 70 * Math.sin(t), y = c - 70 * Math.cos(t);
   el('line', { x1: c, y1: c, x2: x, y2: y, stroke: color, 'stroke-width': 4, 'stroke-linecap': 'round' }, svg);
   el('circle', { cx: x, cy: y, r: 7, fill: color }, svg);
-  el('text', { x: c, y: c + 4, 'text-anchor': 'middle', text: `${angle.toFixed(1)}°`, fill: 'var(--ink)', 'font-weight': 700 }, svg);
+  el('text', { x: c, y: c + 6, 'text-anchor': 'middle', text: `${angle.toFixed(1)}°`, fill: 'var(--ink)', 'font-weight': 700, 'font-size': 19 }, svg);
 }
 
 export function chshDials(host, state, onChange) {
@@ -46,6 +48,7 @@ export function chshDials(host, state, onChange) {
   const render = () => {
     for (const [k, v] of Object.entries(views)) {
       v.input.value = String(state.angles[k]);
+      v.input.setAttribute('aria-valuetext', `${state.angles[k]}°`);
       polar(v.svg, v.color, state.angles[k]);
     }
     const p = predictChsh(state.angles);
@@ -82,22 +85,29 @@ export function ghzBases(host, state, onChange) {
     tot.innerHTML = `<span class="big">${pct(wins / 4)}</span><span class="note">predicted on an ideal machine</span>`;
   };
   const tot = h('div', { class: 'sbx-total' });
+  // the button shows X or Y; its accessible name says so too
+  const sync = (b) => {
+    const p = Number(b.dataset.p), card = Number(b.dataset.card), v = state.ghz[`p${p}`][card];
+    b.textContent = v;
+    b.setAttribute('aria-label', `${names[p]}, card ${card}: measures ${v}`);
+  };
   const rows = names.map((n, p) => h('div', { class: 'prow' }, [
     h('span', { class: `pname ${cls[p]}`, text: n }),
     ...[0, 1].map((card) => {
-      const b = h('button', { type: 'button', class: 'basis', 'aria-label': `${n}, card ${card}: measurement basis`, text: state.ghz[`p${p}`][card] });
+      const b = h('button', { type: 'button', class: 'basis', 'data-p': String(p), 'data-card': String(card) });
+      sync(b);
       b.addEventListener('click', () => {
         state.ghz[`p${p}`][card] = state.ghz[`p${p}`][card] === 'X' ? 'Y' : 'X';
-        b.textContent = state.ghz[`p${p}`][card];
+        sync(b);
         render(); onChange();
       });
-      return h('label', { class: 'tog' }, [h('span', { text: `card ${card} →` }), b]);
+      return h('label', { class: 'tog' }, [h('span', { text: `card ${card} →`, 'aria-hidden': 'true' }), b]);
     }),
   ]));
   host.append(h('div', { class: 'players' }, rows), out, tot);
   render();
   return () => {
-    host.querySelectorAll('button.basis').forEach((b, i) => { b.textContent = state.ghz[`p${Math.floor(i / 2)}`][i % 2]; });
+    host.querySelectorAll('button.basis').forEach(sync);
     render();
   };
 }
@@ -107,14 +117,15 @@ export const SQUARE = [['X⊗I', 'I⊗X', 'X⊗X'], ['I⊗Z', 'Z⊗I', 'Z⊗Z'],
 export function pauliSquare(host, hit) {
   host.innerHTML = '';
   const t = h('table');
-  const head = h('tr', {}, [h('th'), ...[0, 1, 2].map((c) => h('th', { text: `Bob's col ${c + 1}` })), h('th', { text: 'product' })]);
+  t.append(h('caption', { class: 'visually-hidden', text: 'The Mermin–Peres square of two-qubit measurements: Alice measures a row, Bob a column' }));
+  const head = h('tr', {}, [h('th'), ...[0, 1, 2].map((c) => h('th', { scope: 'col', text: `Bob's col ${c + 1}` })), h('th', { scope: 'col', text: 'product' })]);
   t.append(head);
   SQUARE.forEach((row, r) => {
-    const tr = h('tr', {}, [h('th', { text: `Alice's row ${r + 1}` })]);
+    const tr = h('tr', {}, [h('th', { scope: 'row', text: `Alice's row ${r + 1}` })]);
     row.forEach((v, c) => tr.append(h('td', { class: hit && hit[0] === r && hit[1] === c ? 'hit' : '', text: v })));
     tr.append(h('td', { text: '+1' }));
     t.append(tr);
   });
-  t.append(h('tr', {}, [h('th', { text: 'product' }), ...[0, 1, 2].map(() => h('td', { text: '−1' })), h('td')]));
+  t.append(h('tr', {}, [h('th', { scope: 'row', text: 'product' }), ...[0, 1, 2].map(() => h('td', { text: '−1' })), h('td')]));
   host.append(t);
 }

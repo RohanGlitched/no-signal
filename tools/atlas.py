@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from nosig.play import summarize, classical_win  # noqa: E402
+from nosig.games import SIZES  # noqa: E402
 
 ORDER = ["forte-enterprise-1", "forte-1", "aria-1", "aria-2", "ibm", "braket", "ideal"]
 
@@ -66,7 +67,20 @@ def expand(run):
             rs = decode(g, rs)
         rounds[g] = [r if isinstance(r, dict) else
                      {"cards": r[0], "answers": r[1], "win": r[2], "classical": r[3]} for r in rs]
-    return {**run, "games": games, "rounds": rounds, "recorded": True}
+    out = {**run, "games": games, "rounds": rounds, "recorded": True}
+    if "logical_qubits" not in out:
+        # older recordings kept only the transpiled width; the games' own width
+        # follows from what was played (one circuit packs every group side by side)
+        if run["profile"].get("one_circuit"):
+            out["logical_qubits"] = sum(SIZES[g] * s["covered"] for g, s in games.items())
+        else:
+            out["logical_qubits"] = max(SIZES[g] for g in games)
+    if run["profile"].get("one_circuit") and not run.get("only") and "ms" in games:
+        # the main job's own square pairs, kept apart so the page can pool a
+        # square-only job measured live with exactly these
+        out["ms_main"] = [{k: c[k] for k in ("cards", "wins", "rounds")} for c in games["ms"]["cards"]]
+        out["ms_main_cards"] = [c["cards"] for c in games["ms"]["cards"]]
+    return out
 
 
 def rank(run):

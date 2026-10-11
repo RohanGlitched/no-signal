@@ -1,0 +1,3 @@
+qiskit>=2
+qiskit-aer
+pytest

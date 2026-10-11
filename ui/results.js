@@ -1,6 +1,6 @@
 // Scoreboards, result cards, the race replay, the no-signal check and the atlas.
-import { el, size, linear, reduceMotion } from './svg.js';
-import { h, pct } from './sandbox.js';
+import { el, size, linear, reduceMotion, pct } from './svg.js';
+import { h } from './sandbox.js';
 
 export const GAME_NAME = { chsh: 'Telepathy', ghz: 'Three of a kind', ms: 'Magic square' };
 const LIMIT_TXT = { chsh: '75%', ghz: '75%', ms: '8 in 9' };
@@ -12,21 +12,32 @@ function gauge(v, limit) {
   ]);
 }
 
-export function renderBoards(host, run, classical) {
+// The three scoreboards. With a note (before the machine is read, or when it
+// could not be read) they are placeholders with the classical limits only.
+export function renderBoards(host, run, classical, note = '') {
   host.innerHTML = '';
   for (const g of ['chsh', 'ghz', 'ms']) {
     const s = run && run.games && run.games[g];
     const v = s ? s.win : null;
     const partial = g === 'ms' && s && s.covered < 9;
     const over = s && !partial && s.lo > classical[g];
+    const sub = note ? `classical limit ${LIMIT_TXT[g]} · ${note}`
+      : !s ? 'not on this machine in one job'
+      : partial ? `${s.covered} of 9 pairs: not a test on its own · ${s.rounds.toLocaleString()} rounds`
+      : s.pooled ? `classical limit ${LIMIT_TXT[g]} · ${s.pooled.now} pairs measured now + ${s.pooled.recorded} from the recorded job · ${s.rounds.toLocaleString()} rounds`
+      : `classical limit ${LIMIT_TXT[g]} · ${s.rounds.toLocaleString()} rounds`;
     host.append(h('div', { class: 'board' }, [
       h('span', { class: 'bname', text: GAME_NAME[g] }),
       h('span', { class: `bnum ${s ? (over ? 'over' : partial ? 'part' : 'under') : ''}`, text: s ? pct(v) : '—' }),
       gauge(v, classical[g]),
-      h('span', { class: 'bsub', text: !s ? `not on this machine in one job` : partial ? `${s.covered} of 9 pairs: not a test on its own · ${s.rounds.toLocaleString()} rounds` : `classical limit ${LIMIT_TXT[g]} · ${s.rounds.toLocaleString()} rounds` }),
+      h('span', { class: 'bsub', text: sub }),
     ]));
   }
 }
+
+// Was this game's result recorded earlier, or measured in this session? A
+// square-only play keeps the other games from the recorded run it joined.
+export const isRecorded = (run, game) => !!(run && (run.recorded || (run.kept && run.kept.includes(game))));
 
 function cardBars(game, s) {
   const svg = el('svg', { role: 'img', 'aria-label': `${GAME_NAME[game]} win rate for each set of cards` });
@@ -55,9 +66,11 @@ function cardBars(game, s) {
   return svg;
 }
 
-const timers = {};
+const timers = {}, observers = {};
 function race(host, game, rounds) {
   clearInterval(timers[game]);
+  // a re-render replaces the host: drop the observer still watching the old one
+  if (observers[game]) { observers[game].disconnect(); observers[game] = null; }
   const q = h('div', { class: 'race-row q' }, [h('span', { text: 'Quantum team' }), h('div', { class: 'bar' }, [h('i')]), h('span', { class: 'pct' })]);
   const c = h('div', { class: 'race-row c' }, [h('span', { text: 'Best classical' }), h('div', { class: 'bar' }, [h('i')]), h('span', { class: 'pct' })]);
   const feed = h('div', { class: 'race-feed', 'aria-hidden': 'true' });
@@ -85,7 +98,8 @@ function race(host, game, rounds) {
   replay.addEventListener('click', run);
   // start when visible
   if (typeof IntersectionObserver === 'function') {
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); run(); } }, { threshold: 0.3 });
+    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); observers[game] = null; run(); } }, { threshold: 0.3 });
+    observers[game] = io;
     io.observe(host);
   } else run();
 }
@@ -109,8 +123,11 @@ export function renderResult(host, game, run) {
   // the 8-in-9 limit holds over all nine pairs: a classical team can win any eight every time
   const partial = game === 'ms' && s.covered < 9;
   const over = !partial && s.lo > s.classical;
+  const lbl = s.pooled
+    ? `${run.profile.label} · ${s.pooled.now} pairs measured now + ${s.pooled.recorded} from the recorded job on this machine`
+    : `${isRecorded(run, game) ? 'Recorded' : 'Measured'} on ${run.profile.label}${Number.isFinite(run.visibility) ? ` at ${pct(run.visibility)} visibility (noise mixed in on purpose)` : ''}`;
   const big = h('div', { class: 'res-big' }, [
-    h('span', { class: 'lbl', text: `${run.recorded ? 'Recorded' : 'Measured'} on ${run.profile.label.replace(' noise model', '')}` }),
+    h('span', { class: 'lbl', text: lbl }),
     h('span', { class: `val ${over ? 'over' : partial ? 'part' : 'under'}`, text: pct(s.win) }),
     h('span', { class: 'ci', text: `95% interval ${pct(s.lo)} – ${pct(s.hi)} · ${s.rounds.toLocaleString()} rounds` }),
   ]);
@@ -118,10 +135,11 @@ export function renderResult(host, game, run) {
     ? `This job asked ${s.covered} of the 9 row and column pairs, and the 8-in-9 limit only holds over all nine: a classical team can win any ${s.covered} pairs every time. So on its own this is not a test. Choose <b>The whole magic square</b> under Play to ask all nine.`
     : over
     ? `Above the classical limit of ${LIMIT_TXT[game]} by <b>${!s.sigma ? '—' : s.sigma >= 100 ? 'more than 100' : s.sigma.toFixed(0)} standard errors</b>${s.win === 1 ? `, without losing one of ${s.rounds.toLocaleString()} rounds` : ''}. ${luck(s.sigma)} No team without entanglement could do this.`
-    : `Not above the classical limit of ${LIMIT_TXT[game]}${run.custom ? ': try other settings' : ''}.`;
-  if (game === 'chsh' && s.S !== undefined) {
-    say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b> ± ${(s.S_se * 1.96).toFixed(3)} (95%); classical ≤ 2, quantum ≤ 2.828.`;
-    if (s.S > 2 * Math.SQRT2 && s.S - 1.96 * s.S_se <= 2 * Math.SQRT2) say += ' Above 2.828 only by chance: the bound lies inside the error bar, as it should with a finite number of rounds.';
+    : `Not above the classical limit of ${LIMIT_TXT[game]}${Number.isFinite(run.visibility) ? `: this run mixed noise in down to ${pct(run.visibility)} visibility, and the noise figure puts this game's limit at about ${{ chsh: '71%', ghz: '50%', ms: '85%' }[game]}` : run.custom ? ': try other settings' : ''}.`;
+  const hasSe = Number.isFinite(s.S_se);
+  if (game === 'chsh' && Number.isFinite(s.S)) {
+    say += ` Bell parameter S = <b>${s.S.toFixed(3)}</b>${hasSe ? ` ± ${(s.S_se * 1.96).toFixed(3)} (95%)` : ''}; classical ≤ 2, quantum ≤ 2.828.`;
+    if (hasSe && s.S > 2 * Math.SQRT2 && s.S - 1.96 * s.S_se <= 2 * Math.SQRT2) say += ' Above 2.828 only by chance: the bound lies inside the error bar, as it should with a finite number of rounds.';
   }
   big.append(h('p', { class: 'say', html: say }));
   const chart = h('div', { class: 'res-chart' }, [cardBars(game, s)]);
@@ -166,44 +184,54 @@ export function renderAtlas(host, runs, currentLabel) {
   }
   const order = { ionq: 0, ibm: 1, braket: 2, ideal: 3 };
   const o = (r) => order[r.profile.family] ?? 4;
-  runs = [...runs].sort((a, b) => (o(a) - o(b)) || ((b.games.chsh?.win || 0) - (a.games.chsh?.win || 0)));
-  host.append(h('div', { class: 'arow head', role: 'row' }, [h('span', { text: 'Machine' }),
-    h('span', { text: 'Telepathy (limit 75%)' }), h('span', { text: 'Three of a kind (75%)' }), h('span', { text: 'Magic square (88.9%)' })]));
+  runs = [...runs].sort((a, b) => (o(a) - o(b)) || ((b.games?.chsh?.win || 0) - (a.games?.chsh?.win || 0)));
+  const colh = (text) => h('span', { role: 'columnheader', text });
+  host.append(h('div', { class: 'arow head', role: 'row' }, [colh('Machine'),
+    colh('Telepathy (limit 75%)'), colh('Three of a kind (75%)'), colh('Magic square (88.9%)')]));
   const fam = { ionq: 'Trapped ions', ibm: 'Superconducting', braket: 'Ideal · Amazon Braket', ideal: 'No noise' };
   for (const r of runs) {
     const you = r.profile.label === currentLabel;
     const cells = ['chsh', 'ghz', 'ms'].map((g) => {
-      const s = r.games[g];
-      if (!s) return h('span', { class: 'acell' }, [h('span', { class: 'v', text: '—' })]);
-      const extra = g === 'chsh' && s.S !== undefined ? ` · S ${s.S.toFixed(2)}` : '';
-      if (g === 'ms' && s.covered < 9) return h('span', { class: 'acell part' }, [h('span', { class: 'v', text: `${pct(s.win)} · ${s.covered} of 9 pairs` }), h('small', { text: 'not a test on its own' })]);
-      return h('span', { class: 'acell' }, [h('span', { class: 'v', text: pct(s.win) + extra }), gauge(s.win, s.classical)]);
+      const s = r.games && r.games[g];
+      if (!s) return h('span', { class: 'acell', role: 'cell' }, [h('span', { class: 'v', text: '—' })]);
+      const extra = g === 'chsh' && Number.isFinite(s.S) ? ` · S ${s.S.toFixed(2)}` : '';
+      if (g === 'ms' && s.covered < 9) return h('span', { class: 'acell part', role: 'cell' }, [h('span', { class: 'v', text: `${pct(s.win)} · ${s.covered} of 9 pairs` }), h('small', { text: 'not a test on its own' })]);
+      return h('span', { class: 'acell', role: 'cell' }, [h('span', { class: 'v', text: pct(s.win) + extra }), gauge(s.win, s.classical)]);
     });
+    const name = h('span', { class: 'mname', role: 'cell' }, [r.profile.label, h('small', { text: `${fam[r.profile.family] || ''}${you ? ' · your machine' : ''}` })]);
     host.append(h('div', { class: `arow${you ? ' you' : ''}`, role: 'row' }, [
-      h('span', { class: 'mname', html: `${r.profile.label.replace(' noise model', '')}<small>${fam[r.profile.family] || ''}${you ? ' · your machine' : ''}</small>` }),
+      name,
       ...cells,
     ]));
   }
 }
 
-// TV static for the wall between the booths.
+// TV static for the wall between the booths. Runs only while the wall is on
+// screen, and reuses one image buffer until the canvas changes size.
 export function staticWall(canvas) {
   const ctx = canvas.getContext('2d');
-  let raf = 0, last = 0;
-  const draw = (t) => {
-    raf = requestAnimationFrame(draw);
-    if (t - last < 70) return;
-    last = t;
-    const w = canvas.width = canvas.clientWidth / 2 | 0, hh = canvas.height = canvas.clientHeight / 2 | 0;
+  let raf = 0, last = 0, img = null, px = null;
+  const frame = () => {
+    const w = canvas.clientWidth / 2 | 0, hh = canvas.clientHeight / 2 | 0;
     if (!w || !hh) return;
-    const img = ctx.createImageData(w, hh);
-    for (let i = 0; i < img.data.length; i += 4) {
-      const v = Math.random() * 255 | 0;
-      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-      img.data[i + 3] = 255;
+    if (!img || img.width !== w || img.height !== hh) {
+      canvas.width = w; canvas.height = hh;
+      img = ctx.createImageData(w, hh);
+      px = new Uint32Array(img.data.buffer);
     }
+    for (let i = 0; i < px.length; i++) px[i] = (0xff000000 | ((Math.random() * 255 | 0) * 0x010101)) >>> 0;
     ctx.putImageData(img, 0, 0);
   };
-  if (reduceMotion()) { draw(1000); cancelAnimationFrame(raf); return; }
-  raf = requestAnimationFrame(draw);
+  if (reduceMotion()) { frame(); return; }
+  const loop = (t) => {
+    raf = requestAnimationFrame(loop);
+    if (t - last < 70) return;
+    last = t;
+    frame();
+  };
+  const start = () => { if (!raf) raf = requestAnimationFrame(loop); };
+  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+  if (typeof IntersectionObserver === 'function') {
+    new IntersectionObserver((es) => { if (es[es.length - 1].isIntersecting) start(); else stop(); }).observe(canvas);
+  } else start();
 }

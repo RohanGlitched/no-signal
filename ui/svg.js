@@ -43,15 +43,15 @@ export function logTicks(lo, hi) {
   return out;
 }
 
-export function fmtPct(v, digits = 2) {
+// One percentage format for the whole page: exact values (75%, 100%) without
+// decimals, everything else with one; missing values as a dash.
+export function pct(v) {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—';
-  if (v === 0) return '0%';
   const p = v * 100;
-  if (p >= 10) return p.toFixed(0) + '%';
-  if (p >= 1) return p.toFixed(1) + '%';
-  if (p >= 0.1) return p.toFixed(2) + '%';
-  return p.toPrecision(digits) + '%';
+  return Math.abs(p - Math.round(p)) < 1e-9 ? `${Math.round(p)}%` : `${p.toFixed(1)}%`;
 }
+
+export const fmtPct = (v) => pct(v);
 
 export function fmtSci(v) {
   if (!Number.isFinite(v) || v <= 0) return '0';

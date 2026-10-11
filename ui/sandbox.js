@@ -1,7 +1,6 @@
 // Classical sandboxes: pick answers in advance and see the bound bite.
+import { pct } from './svg.js';
 
-// exact values (75%, 100%) without decimals; measured ones always with one
-const pct = (v) => (Math.abs(v * 100 - Math.round(v * 100)) < 1e-9 ? `${Math.round(v * 100)}%` : `${(v * 100).toFixed(1)}%`);
 const h = (tag, attrs = {}, kids = []) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -15,12 +14,17 @@ const h = (tag, attrs = {}, kids = []) => {
 };
 export { h, pct };
 
-function toggle(label, get, set, render, cls = '') {
-  const b = h('button', { type: 'button', class: cls, 'aria-label': label });
-  const sync = () => { b.textContent = String(get()); };
+// A 0/1 answer button. Its accessible name carries the current answer, so a
+// screen reader hears "Alice, card 0: answers 1", not just the label.
+function toggle(player, card, get, set, render, cls = '') {
+  const b = h('button', { type: 'button', class: cls });
+  const sync = () => {
+    b.textContent = String(get());
+    b.setAttribute('aria-label', `${player}, card ${card}: answers ${get()}`);
+  };
   b.addEventListener('click', () => { set(); sync(); render(); });
   sync();
-  return h('label', { class: 'tog' }, [h('span', { text: label.split(':')[1] || label }), b]);
+  return h('label', { class: 'tog' }, [h('span', { text: `card ${card} →`, 'aria-hidden': 'true' }), b]);
 }
 
 // ------------------------------------------------------------ Telepathy (CHSH)
@@ -45,11 +49,11 @@ export function chshSandbox(host) {
   };
   const players = h('div', { class: 'players' }, [
     h('div', { class: 'prow' }, [h('span', { class: 'pname a', text: 'Alice' }),
-      toggle('Alice: card 0 →', () => s.a[0], () => { s.a[0] ^= 1; }, render),
-      toggle('Alice: card 1 →', () => s.a[1], () => { s.a[1] ^= 1; }, render)]),
+      toggle('Alice', 0, () => s.a[0], () => { s.a[0] ^= 1; }, render),
+      toggle('Alice', 1, () => s.a[1], () => { s.a[1] ^= 1; }, render)]),
     h('div', { class: 'prow' }, [h('span', { class: 'pname b', text: 'Bob' }),
-      toggle('Bob: card 0 →', () => s.b[0], () => { s.b[0] ^= 1; }, render),
-      toggle('Bob: card 1 →', () => s.b[1], () => { s.b[1] ^= 1; }, render)]),
+      toggle('Bob', 0, () => s.b[0], () => { s.b[0] ^= 1; }, render),
+      toggle('Bob', 1, () => s.b[1], () => { s.b[1] ^= 1; }, render)]),
   ]);
   const all = h('button', { type: 'button', class: 'ghost allbtn', text: 'Try all 16 strategies',
     onclick: () => {
@@ -89,8 +93,8 @@ export function ghzSandbox(host) {
   };
   const rows = names.map((n, p) => h('div', { class: 'prow' }, [
     h('span', { class: `pname ${cls[p]}`, text: n }),
-    toggle(`${n}: card 0 →`, () => s[p][0], () => { s[p][0] ^= 1; }, render),
-    toggle(`${n}: card 1 →`, () => s[p][1], () => { s[p][1] ^= 1; }, render),
+    toggle(n, 0, () => s[p][0], () => { s[p][0] ^= 1; }, render),
+    toggle(n, 1, () => s[p][1], () => { s[p][1] ^= 1; }, render),
   ]));
   host.append(h('div', { class: 'players' }, rows), out, total);
   render();
@@ -101,31 +105,45 @@ export function magicGrid(host) {
   const g = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const wrap = h('div', { class: 'msq' });
   const verdict = h('div', { class: 'sbx-total' });
+  // built once and updated in place, so a click keeps keyboard focus on its square
+  const cells = [], rowTags = [], colTags = [];
+  wrap.append(h('span'));
+  for (let c = 0; c < 3; c++) wrap.append(h('span', { class: 'hd', text: `col ${c + 1}` }));
+  wrap.append(h('span', { class: 'hd', text: 'row: even' }));
+  for (let r = 0; r < 3; r++) {
+    wrap.append(h('span', { class: 'hd', text: `row ${r + 1}` }));
+    cells.push([]);
+    for (let c = 0; c < 3; c++) {
+      const b = h('button', { type: 'button' });
+      b.addEventListener('click', () => { g[r][c] ^= 1; render(); });
+      cells[r].push(b);
+      wrap.append(b);
+    }
+    rowTags.push(h('span'));
+    wrap.append(rowTags[r]);
+  }
+  wrap.append(h('span', { class: 'hd', text: 'col: odd' }));
+  for (let c = 0; c < 3; c++) { colTags.push(h('span')); wrap.append(colTags[c]); }
+  wrap.append(h('span'));
+  const tag = (node, ok, yes, no) => { node.className = `tag ${ok ? 'ok' : 'bad'}`; node.textContent = ok ? yes : no; };
   const render = () => {
-    wrap.innerHTML = '';
-    wrap.append(h('span'));
-    for (let c = 0; c < 3; c++) wrap.append(h('span', { class: 'hd', text: `col ${c + 1}` }));
-    wrap.append(h('span', { class: 'hd', text: 'row: even' }));
-    let rowsOk = 0;
+    let rowsOk = 0, colsOk = 0;
     for (let r = 0; r < 3; r++) {
-      wrap.append(h('span', { class: 'hd', text: `row ${r + 1}` }));
       for (let c = 0; c < 3; c++) {
-        const b = h('button', { type: 'button', class: g[r][c] ? 'one' : '', 'aria-label': `row ${r + 1} column ${c + 1}: ${g[r][c]}`, text: String(g[r][c]) });
-        b.addEventListener('click', () => { g[r][c] ^= 1; render(); });
-        wrap.append(b);
+        const b = cells[r][c];
+        b.className = g[r][c] ? 'one' : '';
+        b.textContent = String(g[r][c]);
+        b.setAttribute('aria-label', `row ${r + 1} column ${c + 1}: ${g[r][c]}`);
       }
       const ok = (g[r][0] + g[r][1] + g[r][2]) % 2 === 0;
       rowsOk += ok;
-      wrap.append(h('span', { class: `tag ${ok ? 'ok' : 'bad'}`, text: ok ? 'even ✓' : 'odd ✗' }));
+      tag(rowTags[r], ok, 'even ✓', 'odd ✗');
     }
-    wrap.append(h('span', { class: 'hd', text: 'col: odd' }));
-    let colsOk = 0;
     for (let c = 0; c < 3; c++) {
       const ok = (g[0][c] + g[1][c] + g[2][c]) % 2 === 1;
       colsOk += ok;
-      wrap.append(h('span', { class: `tag ${ok ? 'ok' : 'bad'}`, text: ok ? 'odd ✓' : 'even ✗' }));
+      tag(colTags[c], ok, 'odd ✓', 'even ✗');
     }
-    wrap.append(h('span'));
     const ones = g.flat().reduce((a, b) => a + b, 0);
     verdict.innerHTML = `<span class="big">${rowsOk + colsOk} of 6</span><span class="note">rules met. The grid holds ${ones} ones: rows want an even total, columns an odd one, so at most 5 of the 6 can hold. Wherever a rule breaks, the squares on it can lose.</span>`;
   };

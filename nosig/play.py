@@ -9,7 +9,7 @@ import random
 import time
 
 from .games import (CHSH_CARDS, GHZ_CARDS, MS_CARDS, CLASSICAL, QUANTUM, BEST_ANGLES, BEST_GHZ,
-                    SIZES, plan, circuits, score, bits_of)
+                    SIZES, Group, plan, circuits, score, bits_of, visibility_mix)
 
 Z95 = 1.959963984540054
 
@@ -82,9 +82,14 @@ def summarize(game, per_card):
     # 95% interval: Wilson on the pooled rounds (cards get equal rounds)
     _, lo, hi = wilson(sum(per_card[c][0] for c in cards), n_tot)
     c = CLASSICAL[game]
+    # margin over the classical limit, in standard errors of the null: a team
+    # winning exactly c of n_tot rounds spreads by sqrt(c(1-c)/n_tot). The
+    # observed-rate error above shrinks near 100% and would inflate the margin.
+    se0 = math.sqrt(c * (1 - c) / n_tot) if n_tot > 0 else 0.0
     out = {
         "game": game, "rounds": n_tot, "win": w, "lo": min(lo, w), "hi": max(hi, w),
-        "se": se, "classical": c, "quantum": QUANTUM[game], "sigma": (w - c) / se if se > 0 else None,
+        "se": se, "se_null": se0, "classical": c, "quantum": QUANTUM[game],
+        "sigma": (w - c) / se0 if se0 > 0 else None,
         "cards": [{"cards": list(cc), "wins": per_card[cc][0], "rounds": per_card[cc][1],
                    "rate": per_card[cc][0] / max(per_card[cc][1], 1)} for cc in cards],
         "covered": len(cards),
@@ -93,11 +98,55 @@ def summarize(game, per_card):
         # Bell parameter S = E00 + E01 + E10 - E11, with E = 2 P(win) - 1 (sign folded in)
         S = sum(2 * r - 1 for r in rates)
         out["S"] = S
-        out["S_se"] = 8 * se          # S = 8 w - 4, and se is the error of w
+        out["S_se"] = 8 * se          # S = 8 w - 4, and se is the error of w (an interval, not a test)
     return out
 
 
-def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "ghz", "ms"), ms_cards=None):
+def largest_remainder(total, weights):
+    """Split total shots in proportion to weights, as whole numbers that add up."""
+    raw = [total * w for w in weights]
+    out = [int(math.floor(x)) for x in raw]
+    for i in sorted(range(len(raw)), key=lambda i: raw[i] - out[i], reverse=True)[:total - sum(out)]:
+        out[i] += 1
+    return out
+
+
+def mix_groups(groups, v, per):
+    """Each card set becomes its visibility-v mixture: the clean preparation
+    and the bit-flipped ones (games.visibility_mix), with the card set's shots
+    split in proportion. Returns (groups, shots for each, index of its card set)."""
+    out, shots, base = [], [], []
+    for i, g in enumerate(groups):
+        mix = visibility_mix(g.game, v)
+        for (flips, _), n in zip(mix, largest_remainder(per, [w for _, w in mix])):
+            if n > 0:
+                out.append(Group(g.game, g.cards, g.qubits, {"flips": flips}))
+                shots.append(n)
+                base.append(i)
+    return out, shots, base
+
+
+def _with_input_flips(tq, flips):
+    """A transpiled circuit with X gates first on the physical qubits that
+    hold the given virtual qubits: the same as flipping the inputs before
+    transpiling, without transpiling again."""
+    if not flips:
+        return tq
+    phys = tq.layout.initial_index_layout(filter_ancillas=True) if tq.layout is not None else list(range(tq.num_qubits))
+    out = tq.copy_empty_like()
+    for k in flips:
+        out.x(phys[k])
+    out.compose(tq, inplace=True)
+    return out
+
+
+def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "ghz", "ms"), ms_cards=None, status=None,
+         visibility=None):
+    """status, if given, gets status["submitted"] = True once backend.run has
+    accepted the job, so a failure after that still counts as the run's one job.
+    visibility (local simulators only): play every card set as the noise
+    figure's model state with that visibility instead of the clean one."""
+    status = status if status is not None else {}
     t0 = time.time()
     angles = angles or dict(BEST_ANGLES)
     ghz = ghz or {k: tuple(v) for k, v in BEST_GHZ.items()}
@@ -106,13 +155,29 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "
     seed = int(seed if seed is not None else time.time()) % 100000
     groups = plan(prof["cap"], prof["one_circuit"], angles, ghz, seed=seed, games=tuple(games),
                   ms_cards=[tuple(c) for c in ms_cards] if ms_cards else None)
+    per = max(1, int(shots))
+    vis = None
+    if visibility is not None and float(visibility) < 1 and not prof["one_circuit"]:
+        vis = max(0.0, float(visibility))
+    shots_of = None
+    clean = groups
+    if vis is not None:
+        groups, shots_of, base = mix_groups(clean, vis, per)
     pairs = circuits(groups, prof["one_circuit"], angles, ghz)
     qcs = [qc for qc, _ in pairs]
+    logical = max(q.num_qubits for q in qcs)       # before transpiling: what the games use
     if prof["family"] == "ibm":
         from qiskit import transpile
         # level 3 places each game on the best-calibrated qubits; level 1 keeps
         # the trivial layout (qubits 0, 1, ...), which can be the noisiest pair
-        qcs = transpile(qcs, backend=backend, optimization_level=3, seed_transpiler=7)
+        target = getattr(backend, "target", None)
+        if vis is not None and target is not None and "x" in target.operation_names:
+            # transpile each card set once; its bit-flipped versions reuse the layout
+            tq = transpile([qc for qc, _ in circuits(clean, False, angles, ghz)], backend=backend,
+                           optimization_level=3, seed_transpiler=7)
+            qcs = [_with_input_flips(tq[b], g.meta.get("flips", ())) for g, b in zip(groups, base)]
+        else:
+            qcs = transpile(qcs, backend=backend, optimization_level=3, seed_transpiler=7)
     elif prof["family"] == "ionq":
         try:
             from qiskit import transpile
@@ -121,10 +186,27 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "
             pass
     swaps = sum(int(q.count_ops().get("swap", 0)) for q in qcs)
     twoq = sum(int(sum(v for k, v in q.count_ops().items() if k in ("cx", "cz", "ecr", "zz", "ms", "swap"))) for q in qcs)
-    per = max(1, int(shots))
     t1 = time.time()
-    job = backend.run(qcs[0] if len(qcs) == 1 else qcs, shots=per)
-    res = job.result()
+    if shots_of is None:
+        job = backend.run(qcs[0] if len(qcs) == 1 else qcs, shots=per)
+        status["submitted"] = True
+        res = job.result()
+        get_counts = res.get_counts
+        jobs = 1
+    else:
+        # the mixture's preparations get different shot counts: one job per count
+        got = [None] * len(qcs)
+        by = {}
+        for i, n in enumerate(shots_of):
+            by.setdefault(n, []).append(i)
+        for n, idxs in sorted(by.items()):
+            job = backend.run([qcs[i] for i in idxs], shots=n)
+            status["submitted"] = True
+            r = job.result()
+            for j, i in enumerate(idxs):
+                got[i] = r.get_counts(j)
+        get_counts = got.__getitem__
+        jobs = len(by)
     t2 = time.time()
 
     tallies = {"chsh": {}, "ghz": {}, "ms": {}}
@@ -134,7 +216,7 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "
     rng = random.Random(seed)
     for i, (qc, gs) in enumerate(pairs):
         n = qc.num_qubits
-        counts = res.get_counts(i)
+        counts = get_counts(i)
         expanded = []
         for k, c in dict(counts).items():
             b = bits_of(str(k), n)
@@ -172,8 +254,10 @@ def play(backend, angles=None, ghz=None, shots=1000, seed=None, games=("chsh", "
     t3 = time.time()
     return json.dumps({
         "ok": True, "profile": prof, "angles": angles, "ghz": {k: list(v) for k, v in ghz.items()},
-        "circuits": len(qcs), "qubits": max(q.num_qubits for q in qcs), "shots_per_circuit": per,
-        "two_qubit_gates": twoq, "swaps": swaps, "seed": seed,
+        # logical_qubits: the width the games need; qubits: the width after transpiling
+        # (IonQ maps the 28-qubit circuit onto all 29 qubits of a Forte)
+        "circuits": len(qcs), "logical_qubits": logical, "qubits": max(q.num_qubits for q in qcs), "shots_per_circuit": per,
+        "two_qubit_gates": twoq, "swaps": swaps, "seed": seed, "jobs": jobs, "visibility": vis,
         "games": games, "nosignal": nosig, "rounds": rounds,
         "missing": [g for g in ("chsh", "ghz", "ms") if g not in games], "only": list(requested) if len(requested) < 3 else None,
         "timing": {"build": t1 - t0, "run": t2 - t1, "score": t3 - t2},

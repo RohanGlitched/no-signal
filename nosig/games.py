@@ -166,9 +166,38 @@ def plan(cap: int, one_circuit: bool, angles, ghz_strategy, ms_cards=None, seed=
     return groups
 
 
+# --------------------------------------------------------------- visibility
+
+def visibility_mix(game: str, v: float):
+    """The noisy state the noise figure models, as a mixture of clean
+    preparations: [(input bit flips, weight)], flips given as positions in the
+    group. A uniformly random Pauli on Alice's qubit right after a Bell pair is
+    prepared gives I/4; it equals flipping the pair's two input bits in one of
+    the four patterns (00, 01, 10, 11 prepare the four Bell states). So
+    weight v on the clean pair plus (1 - v)/4 on each pattern is exactly
+    v|Phi+><Phi+| + (1 - v) I/4. For GHZ, random Paulis on two of its three
+    qubits give I/8: the eight input patterns of three bits, (1 - v)/8 each.
+    The magic square's two pairs are mixed independently (16 patterns)."""
+    if v >= 1:
+        return [((), 1.0)]
+    v = max(0.0, float(v))
+    if game == "ghz":
+        pats = [tuple(q for q in range(3) if k >> q & 1) for k in range(8)]
+        return [(f, (v if not f else 0.0) + (1 - v) / 8) for f in pats]
+    pairs = [(0, 1)] if game == "chsh" else [(0, 2), (1, 3)]
+    out = [((), 1.0)]
+    for a, b in pairs:
+        one = [((), v + (1 - v) / 4), ((a,), (1 - v) / 4), ((b,), (1 - v) / 4), ((a, b), (1 - v) / 4)]
+        out = [(f + g, w * x) for f, w in out for g, x in one]
+    return out
+
+
 def circuits(groups, one_circuit: bool, angles, ghz_strategy):
-    """Returns [(QuantumCircuit, [groups in it])]."""
+    """Returns [(QuantumCircuit, [groups in it])]. A group's meta["flips"]
+    (positions in the group) are X gates on the inputs, before preparation."""
     def add(qc, g):
+        for k in g.meta.get("flips", ()):
+            qc.x(g.qubits[k])
         if g.game == "chsh":
             add_chsh(qc, g.qubits, g.cards, angles)
         elif g.game == "ghz":
@@ -186,7 +215,8 @@ def circuits(groups, one_circuit: bool, angles, ghz_strategy):
     out = []
     for g in groups:
         n = SIZES[g.game]
-        qc = QuantumCircuit(n, n, name=f"{g.game}_{''.join(map(str, g.cards))}")
+        tag = "".join(map(str, g.meta.get("flips", ())))
+        qc = QuantumCircuit(n, n, name=f"{g.game}_{''.join(map(str, g.cards))}" + (f"_x{tag}" if tag else ""))
         add(qc, g)
         qc.measure(range(n), range(n))
         out.append((qc, [g]))
